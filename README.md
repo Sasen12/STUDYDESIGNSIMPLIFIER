@@ -48,12 +48,21 @@ lib/
 This is an early UI-only build:
 
 - Content is served from a hardcoded sample dataset
-  (`lib/data/sample_data.dart`) — there's no backend or content-import
-  pipeline yet.
+  (`lib/data/sample_data.dart`) — the app doesn't yet consume the
+  generated dataset from `backend/` (see below).
 - State is held in memory with `setState`; completion status and theme
   choice are **not** persisted and reset on every restart.
 - The layout is a fixed three-column, desktop-style design (220px sidebar,
   35%-width detail panel) and hasn't been adapted for phone-sized screens.
+
+## Content pipeline (`backend/`)
+
+Real study design content isn't written by hand — it's generated from
+official VCAA study design files (.docx/.pdf) by an offline Python
+pipeline: parse -> extract structured items -> simplify into
+plain-language text -> write JSON. See [backend/README.md](backend/README.md)
+for how it works and how to run it. Wiring its output into the Flutter
+app (replacing `sample_data.dart`) hasn't been done yet.
 
 ## Getting started
 
