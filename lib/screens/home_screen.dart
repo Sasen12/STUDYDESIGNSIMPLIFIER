@@ -268,6 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                         : Row(
                           key: const ValueKey('content'),
+                          // Without this, the detail panel — which has
+                          // no Expanded/flex child of its own to force
+                          // it to fill height, unlike the center list
+                          // column — shrink-wraps to its content height
+                          // and sits centered in the Row's cross axis,
+                          // leaving grey gaps above and below it.
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Sidebar(
                               subjects: _subjects,

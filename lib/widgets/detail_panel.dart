@@ -163,33 +163,42 @@ class _ItemDetail extends StatelessWidget {
               color: context.textPrimary,
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            'Plain Language',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF34C759),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F8E8),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF34C759).withValues(alpha: 0.3),
-                width: 0.5,
+          // The backend pipeline only trims long prose and swaps known
+          // jargon words — it doesn't rephrase content that's already
+          // plain (e.g. a bare list of everyday words like "accuracy,
+          // bias, integrity..."). When that leaves the two texts
+          // identical, showing a "Plain Language" box that just repeats
+          // the official text verbatim isn't helpful — skip it instead.
+          if (studyItem.plainLanguageText.trim() !=
+              studyItem.officialText.trim()) ...[
+            const SizedBox(height: 20),
+            Text(
+              'Plain Language',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF34C759),
+                letterSpacing: 0.5,
               ),
             ),
-            child: _FormattedText(
-              text: studyItem.plainLanguageText,
-              color: const Color(0xFF1C1C1E),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F8E8),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF34C759).withValues(alpha: 0.3),
+                  width: 0.5,
+                ),
+              ),
+              child: _FormattedText(
+                text: studyItem.plainLanguageText,
+                color: const Color(0xFF1C1C1E),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 24),
           Row(
             children: [
