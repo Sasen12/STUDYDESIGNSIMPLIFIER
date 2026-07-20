@@ -53,9 +53,18 @@ def _load_overrides(input_dir: Path) -> dict[str, str]:
     filename-based guess in _subject_for isn't good enough.
     """
     config_path = input_dir / "subjects.json"
-    if config_path.exists():
+    if not config_path.exists():
+        return {}
+    try:
         return json.loads(config_path.read_text())
-    return {}
+    except json.JSONDecodeError as e:
+        # A raw JSONDecodeError traceback here just points into
+        # json.loads() internals — doesn't say which file has the
+        # problem. subjects.json is small and hand-edited, so a typo
+        # (trailing comma, missing quote) is a realistic mistake worth
+        # a clear, immediate message rather than a crash to debug.
+        print(f"ERROR: {config_path} is not valid JSON: {e}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 def _dump_blocks(path: Path, blocks: list, dump_dir: Path) -> None:
@@ -101,37 +110,50 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
     for path in source_files:
         subject = _subject_for(path, overrides)
 
-        # Step 1: format-specific parsing -> flat, format-agnostic blocks.
-        blocks = _PARSERS[path.suffix.lower()](str(path))
+        try:
+            # Step 1: format-specific parsing -> flat, format-agnostic blocks.
+            blocks = _PARSERS[path.suffix.lower()](str(path))
 
-        if dump_blocks_dir is not None:
-            _dump_blocks(path, blocks, dump_blocks_dir)
+            if dump_blocks_dir is not None:
+                _dump_blocks(path, blocks, dump_blocks_dir)
 
-        # Step 2: turn those blocks into structured StudyItem rows.
-        items = extract_items(blocks, subject)
+            # Step 2: turn those blocks into structured StudyItem rows.
+            items = extract_items(blocks, subject)
 
-        if not items:
-            # Extracting zero items almost always means the document's
-            # headings didn't match the patterns extract_items.py/
-            # parse_pdf.py expect (VCAA wording can differ slightly
-            # between subjects/years) — flag it loudly rather than
-            # silently shipping an empty subject.
-            print(f"  WARNING: extracted 0 items from {path.name} — check its heading structure", file=sys.stderr)
+            if not items:
+                # Extracting zero items almost always means the document's
+                # headings didn't match the patterns extract_items.py/
+                # parse_pdf.py expect (VCAA wording can differ slightly
+                # between subjects/years) — flag it loudly rather than
+                # silently shipping an empty subject.
+                print(f"  WARNING: extracted 0 items from {path.name} — check its heading structure", file=sys.stderr)
 
-        # Step 3: some files bundle several VCE studies into one
-        # document (e.g. the combined Mathematics study design covers
-        # General/Specialist/Foundation Mathematics and Mathematical
-        # Methods as four separate courses) — split those out into
-        # their real subjects before anything downstream treats them as
-        # one. No-op for ordinary single-subject files.
-        split_bundled_subjects(items)
+            # Step 3: some files bundle several VCE studies into one
+            # document (e.g. the combined Mathematics study design covers
+            # General/Specialist/Foundation Mathematics and Mathematical
+            # Methods as four separate courses) — split those out into
+            # their real subjects before anything downstream treats them as
+            # one. No-op for ordinary single-subject files.
+            split_bundled_subjects(items)
 
-        # Step 4: fill in the plain-language rewrite for each item.
-        # Done here (not inside extract_items) so extract_items.py stays
-        # purely about document structure and doesn't need to know
-        # anything about simplification.
-        for item in items:
-            item.plain_language_text = simplify(item.official_text)
+            # Step 4: fill in the plain-language rewrite for each item.
+            # Done here (not inside extract_items) so extract_items.py stays
+            # purely about document structure and doesn't need to know
+            # anything about simplification.
+            for item in items:
+                item.plain_language_text = simplify(item.official_text)
+        except Exception as e:
+            # A single corrupt/unreadable/unexpectedly-shaped source
+            # file (not a valid .docx/.pdf, permission error, a parser
+            # internal error on some unusual document structure) used
+            # to crash the *entire* build with an unhandled traceback —
+            # losing every other file's already-processed output too,
+            # since output_path is only written once at the very end.
+            # Skipping just this file and continuing is far better than
+            # that: one bad file becomes a loud warning, not a wasted
+            # run.
+            print(f"  WARNING: failed to process {path.name} ({type(e).__name__}: {e}) — skipping this file", file=sys.stderr)
+            continue
 
         subject_breakdown = Counter(item.subject for item in items)
         if len(subject_breakdown) > 1:

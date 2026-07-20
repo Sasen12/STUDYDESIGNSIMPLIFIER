@@ -21,6 +21,7 @@ source files will likely need small pattern tweaks — see README.md.
 from __future__ import annotations
 
 import re
+import sys
 
 from .models import RawBlock, StudyItem
 
@@ -31,6 +32,17 @@ from .models import RawBlock, StudyItem
 _OUTCOME_RE = re.compile(r"^Outcome\s+(\d+)", re.I)
 _KEY_KNOWLEDGE_RE = re.compile(r"^Key knowledge", re.I)
 _KEY_SKILLS_RE = re.compile(r"^Key skills", re.I)
+
+# Needed to tell a genuine "Area of Study N" heading apart from some
+# other level-2-styled heading ("School-based assessment", "External
+# assessment", a stray TOC line) — parse_docx.py/parse_pdf.py assign
+# level=2 to ANY heading using a "Heading 2"-shaped style, not just ones
+# that say "Area of Study", because an unrecognised heading still needs
+# to act as a boundary (see heading_patterns.py's style_heading_level
+# docstring). Without checking the wording here too, a heading like
+# "School-based assessment" gets treated as if it introduced a new Area
+# of Study, overwriting area_of_study with nonsense.
+_AREA_OF_STUDY_RE = re.compile(r"^Area of [Ss]tudy\s+\d+", re.I)
 
 
 def _slug(text: str) -> str:
@@ -66,7 +78,17 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
     outcome_title: str | None = None
     section: str | None = None  # None | 'awaiting_outcome_statement' | 'Key Knowledge' | 'Key Skill'
 
-    def add_item(category: str, title: str, official_text: str) -> None:
+    # Tracks the specific StudyItem a nested sub-bullet should fold
+    # into — the dot point most recently added *within the current Key
+    # Knowledge/Key Skill section* — rather than trusting `items[-1]`
+    # (the globally last-added item), which could be a leftover from a
+    # completely different Outcome/section if a sub-item ever shows up
+    # before this section has added its own first item. Reset to None
+    # every time we enter a new Key Knowledge/Key Skill section (below)
+    # so a stale parent from a previous section is never reused.
+    current_section_parent: StudyItem | None = None
+
+    def add_item(category: str, title: str, official_text: str) -> StudyItem:
         """Build and append one StudyItem, stamped with whatever
         unit/area_of_study/outcome context we're currently inside.
 
@@ -83,30 +105,42 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
         # inherit unit/area_of_study/outcome the way every other
         # category does.
         is_glossary = category == "Command Term"
-        items.append(
-            StudyItem(
-                id="",
-                subject=subject,
-                title=title,
-                category=category,
-                official_text=official_text,
-                unit=None if is_glossary else unit,
-                area_of_study=None if is_glossary else area_of_study,
-                outcome=None if is_glossary else outcome_title,
-            )
+        item = StudyItem(
+            id="",
+            subject=subject,
+            title=title,
+            category=category,
+            official_text=official_text,
+            unit=None if is_glossary else unit,
+            area_of_study=None if is_glossary else area_of_study,
+            outcome=None if is_glossary else outcome_title,
         )
+        items.append(item)
+        return item
 
     for block in blocks:
         text, level = block.text, block.level
 
-        if block.is_sub_item and section in ("Key Knowledge", "Key Skill") and items:
+        if block.is_sub_item and section in ("Key Knowledge", "Key Skill"):
             # A nested sub-bullet (e.g. "Boolean" indented under "types
             # of data, such as:") means nothing to a student on its own
             # — fold it into the dot point it belongs under instead of
-            # giving it its own StudyItem. That parent is always
-            # `items[-1]`: the item we most recently added while inside
-            # this same Key Knowledge/Key Skill section.
-            items[-1].official_text += f"; {text}"
+            # giving it its own StudyItem.
+            if current_section_parent is not None:
+                current_section_parent.official_text += f"; {text}"
+            else:
+                # Orphaned sub-item: this section hasn't added its own
+                # first item yet (its very first bullet was itself
+                # flagged as a sub-item — not seen in practice, but a
+                # different/oddly-formatted source file could do this).
+                # Dropping it is safer than either fabricating a
+                # meaningless single-fragment item ("Boolean" on its
+                # own) or silently gluing it onto an unrelated item from
+                # a different section.
+                print(
+                    f"  WARNING: orphaned sub-item with no parent dot point, skipping: {text[:60]!r}",
+                    file=sys.stderr,
+                )
             continue
 
         # --- Glossary table row: "Term<TAB>Definition" -----------------
@@ -136,7 +170,7 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
             section = None
             continue
 
-        if level == 2:  # "Area of Study N"
+        if level == 2 and _AREA_OF_STUDY_RE.match(text):
             area_of_study = text
             outcome_title = None
             # Some documents write just "Area of Study 1" here and put
@@ -146,14 +180,41 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
             section = "awaiting_area_title"
             continue
 
-        if level == 3 and section == "awaiting_area_title" and not _OUTCOME_RE.match(text):
-            # The heading right after "Area of Study N" wasn't another
-            # Outcome/Unit/etc. — treat it as that area's descriptive
-            # title and fold it into area_of_study for a more readable
-            # label (e.g. "Area of Study 1: The business idea").
+        if level == 2:
+            # A level-2-styled heading that isn't actually "Area of
+            # Study N" — e.g. "School-based assessment", "External
+            # assessment", or a stray table-of-contents line. Still
+            # ends whatever section came before it (so a Key
+            # Knowledge/Key Skill list doesn't leak into it), but must
+            # NOT be treated as introducing a new Area of Study.
+            section = None
+            continue
+
+        if (
+            level == 3
+            and section == "awaiting_area_title"
+            and not _OUTCOME_RE.match(text)
+            and len(text) <= 100
+        ):
+            # The heading right after a genuine "Area of Study N" wasn't
+            # another Outcome/Unit/etc. — treat it as that area's
+            # descriptive title and fold it into area_of_study for a
+            # more readable label (e.g. "Area of Study 1: The business
+            # idea"). The length check mirrors heading_patterns.py's
+            # pattern_level() guard: a real descriptive title is a short
+            # label, not a full sentence — defends against gluing on an
+            # unrelated heading in case this state is ever entered
+            # unexpectedly.
             area_of_study = f"{area_of_study}: {text}"
             section = None
             continue
+
+        if level == 3 and section == "awaiting_area_title":
+            # Reached a level-3 heading right after "Area of Study N"
+            # that didn't qualify as a title (too long, or is itself an
+            # Outcome heading handled below) — stop waiting for one
+            # rather than leaving stale state around.
+            section = None
 
         if level == 3 and _OUTCOME_RE.match(text):
             # We've just seen "Outcome N" — the very next body-text
@@ -169,10 +230,12 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
             # Every body paragraph from here on (until the next heading)
             # is one Key Knowledge dot point.
             section = "Key Knowledge"
+            current_section_parent = None
             continue
 
         if level == 4 and _KEY_SKILLS_RE.match(text):
             section = "Key Skill"
+            current_section_parent = None
             continue
 
         if level != 0:
@@ -199,7 +262,7 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
             # titles the way Outcomes do).
             words = text.split()
             title = " ".join(words[:8]) + ("…" if len(words) > 8 else "")
-            add_item(section, title, text)
+            current_section_parent = add_item(section, title, text)
         # else: narrative text outside any tracked section (e.g. a
         # "Rationale" paragraph) — intentionally skipped, since it's not
         # one of the four StudyItem categories the app displays.

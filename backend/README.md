@@ -264,6 +264,30 @@ explicit "already written in plain language" note for these instead of
 a duplicate box, rather than trying to force a difference that isn't
 there.
 
+## Robustness
+
+A single malformed/corrupt source file no longer crashes the whole
+`build` run — parsing/extraction/simplification for each file is
+wrapped so a failure there (not a valid .docx/.pdf, a permission
+error, an unusual document structure a parser chokes on) prints a
+warning naming the file and skips it, instead of losing every other
+already-processed file's output too (previously, `output_path` was
+only written once at the very end, so one bad file mid-list meant
+*nothing* got written, no matter how many good files came before it).
+`source_docs/subjects.json` having invalid JSON gets a clear
+"which file, what's wrong" error instead of a raw traceback, for the
+same reason — it's small and hand-edited, so a typo is realistic.
+
+`_most_representative_sentences()` also no longer crashes on a passage
+whose sentences are all stop words/numbers/punctuation once
+`stop_words="english"` strips them (`TfidfVectorizer` raises on an
+"empty vocabulary" in that case) — falls back to returning the
+sentences unchanged. Not currently hit by any of the 2,206 real items
+in this dataset, but proven reachable (`TfidfVectorizer(stop_words=
+"english").fit_transform(["it is", "of the", "and so"])` raises today)
+and the failure mode was severe enough — one bad item crashing the
+whole build — to guard against even as a latent risk.
+
 ## Known remaining data-quality caveats
 
 - A handful of English EAL "Command Term" entries (~1% of that subject's

@@ -214,7 +214,17 @@ def _most_representative_sentences(sentences: list[str], limit: int) -> list[str
         return sentences
 
     vectorizer = TfidfVectorizer(stop_words="english")
-    matrix = vectorizer.fit_transform(sentences)  # one TF-IDF row per sentence
+    try:
+        matrix = vectorizer.fit_transform(sentences)  # one TF-IDF row per sentence
+    except ValueError:
+        # "empty vocabulary" — every sentence was pure stop words/
+        # numbers/punctuation once stop_words="english" stripped them
+        # (e.g. a formula-heavy fragment like "n = 1. a = b."). Not
+        # currently hit by any real item in this dataset, but a future
+        # source file could produce one — falling back to the first
+        # `limit` sentences unchanged keeps that one item merely
+        # unsimplified instead of crashing the whole build over it.
+        return sentences[:limit]
     # matrix.mean(axis=0) returns a np.matrix (a legacy numpy type), which
     # newer scikit-learn's cosine_similarity refuses to accept — convert
     # it to a plain ndarray first.
