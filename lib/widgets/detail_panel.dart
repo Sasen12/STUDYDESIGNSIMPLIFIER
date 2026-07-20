@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/study_item.dart';
 import '../theme/app_colors.dart';
+import '../theme/category_colors.dart';
 
 class DetailPanel extends StatelessWidget {
   final StudyItem? item;
@@ -75,6 +76,7 @@ class _ItemDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final studyItem = item;
+    final accent = categoryColor(studyItem.category);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -114,16 +116,19 @@ class _ItemDetail extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: context.statsBg,
+                  color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: context.borderStrong, width: 0.5),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.3),
+                    width: 0.5,
+                  ),
                 ),
                 child: Text(
                   studyItem.category,
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: context.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
                   ),
                 ),
               ),

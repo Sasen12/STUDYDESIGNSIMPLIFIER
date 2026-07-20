@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/study_item.dart';
 import '../theme/app_colors.dart';
+import '../theme/category_colors.dart';
 
 /// Displays [items] grouped under Unit / Area of Study headers, in the
 /// order the backend pipeline emitted them (Unit 1 -> its Areas of
@@ -168,6 +169,9 @@ class _ItemCardState extends State<_ItemCard> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final isSelected = widget.isSelected;
+    final accent = categoryColor(item.category);
+    final neutral = isSelected ? context.borderStrong : context.border;
+    final neutralWidth = isSelected ? 1.0 : 0.5;
     return GestureDetector(
       onTap: widget.onTap,
       // Press feedback: every pressable element should feel like it
@@ -180,94 +184,114 @@ class _ItemCardState extends State<_ItemCard> {
         scale: _pressed ? 0.98 : 1.0,
         duration: const Duration(milliseconds: 120),
         curve: Curves.easeOut,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
+        child: Container(
           margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isSelected ? context.statsBg : context.cardBg,
+          // Flutter can't paint a BorderRadius on a Border with
+          // per-side colors — a Stack + ClipRRect gives the same
+          // rounded-corner-with-a-colored-edge look without that
+          // restriction: the accent stripe is a plain colored Container
+          // clipped to the same rounded rect as the card underneath it.
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? context.borderStrong : context.border,
-              width: isSelected ? 1 : 0.5,
+            child: Stack(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.fromLTRB(15, 12, 12, 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? context.statsBg : context.cardBg,
+                    border: Border.all(color: neutral, width: neutralWidth),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _hasRealTitle ? item.title : _previewText(item),
+                              maxLines: _hasRealTitle ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight:
+                                    _hasRealTitle
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                color: context.textPrimary,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              item.category,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: accent,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_hasRealTitle) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.plainLanguageText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                      if (item.isCompleted) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 12,
+                              color: Color(0xFF34C759),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Completed',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF34C759),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Category-colored left stripe, clipped to the same
+                // rounded rect as the card via the ClipRRect above.
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(width: 3, color: accent),
+                ),
+              ],
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _hasRealTitle ? item.title : _previewText(item),
-                      maxLines: _hasRealTitle ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight:
-                            _hasRealTitle ? FontWeight.w600 : FontWeight.w500,
-                        color: context.textPrimary,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.surfaceBg,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      item.category,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: context.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (_hasRealTitle) ...[
-                const SizedBox(height: 4),
-                Text(
-                  item.plainLanguageText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-              if (item.isCompleted) ...[
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      size: 12,
-                      color: Color(0xFF34C759),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'Completed',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF34C759),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
           ),
         ),
       ),
