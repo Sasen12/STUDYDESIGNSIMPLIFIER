@@ -106,11 +106,18 @@ Unit N                          (level 1)
 
 Glossary tables ("Term | Definition", e.g. VCAA's command-term glossary)
 are detected separately and become `"Command Term"` items regardless of
-where they appear in the document — `heading_patterns.looks_like_glossary_row()`
-filters out other two-column tables VCAA documents also use (assessment
-mark-allocation tables, document version-history tables, prerequisite/
-overlap tables) that have the same two-column shape but aren't glossary
-content.
+where they appear in the document. Whole tables are first filtered by
+their own header row via `heading_patterns.is_non_glossary_table()`
+(skips "Outcomes | Marks allocated", "Version | Status", and similar —
+see its docstring for the full list and why it's a denylist, not a
+"must say Term/Definition" allowlist), then each remaining row through
+`looks_like_glossary_row()`, which filters out prerequisite/overlap
+tables and similar row-shaped-but-not-glossary content that shares a
+table's header with genuine entries. A row whose term cell contains
+multiple newline-separated paragraphs (seen in one real document: two
+terms accidentally sharing one table row) gets split back into
+separate entries, paired positionally with the definition cell's
+paragraphs, rather than kept as one entry with two glued-together terms.
 
 Heading detection checks a heading's own **wording** first (e.g. "Unit
 3", "Key knowledge" — reliable regardless of styling), then falls back
@@ -290,10 +297,22 @@ whole build — to guard against even as a latent risk.
 
 ## Known remaining data-quality caveats
 
-- A handful of English EAL "Command Term" entries (~1% of that subject's
-  items) come from a differently-structured table in that document
-  (columns aren't a clean Term/Definition pair) and read oddly — not yet
-  specifically filtered.
 - Extraction heuristics are tuned against the 7 real VCAA files this
   pipeline has been run against so far; a new subject's file may need
   small tweaks (see "How extraction works" above).
+
+Previously noted here: a handful of English EAL "Command Term" entries
+read oddly because they actually came from an unrelated thematic
+writing-topics table ("Key idea | Elaboration"), not the real glossary
+— fixed by `heading_patterns.is_non_glossary_table()`, which also fixed
+the same problem in Physics (a report-structure guide table, "Poster
+section | Content", was contributing fake command terms like
+"Introduction" and "Discussion") and recovered 15+ legitimate Applied
+Computing glossary terms ("Pseudocode", "Security threats", ...) that a
+stricter first version of this fix had wrongly excluded — that version
+required a table to have a literal "Term | Definition" header row to be
+considered at all, but real glossary tables in practice sometimes have
+no header row (the first row is already real content). The fix is a
+denylist of headers confirmed NOT to be a glossary, not an allowlist of
+ones that are — every other table still goes through
+`looks_like_glossary_row()` per row as before.

@@ -149,7 +149,7 @@
     "title": "software functions and techniques for efficiently and effectively…",
     "category": "Key Knowledge",
     "officialText": "software functions and techniques for efficiently and effectively manipulating, validating and testing data to develop databases, spreadsheets and data visualisations, such as:; formulas and functions; charts and graphs; use of SQL to generate queries",
-    "plainLanguageText": "software functions and techniques for efficiently and effectively manipulating, validating and testing data to develop databases, spreadsheets and data visualisations, such as:; formulas and functions; charts and graphs; use of SQL (Structured Query Language) to generate queries",
+    "plainLanguageText": "software functions and techniques for efficiently and effectively manipulating, validating and testing data to develop databases, spreadsheets and data visualisations, such as:; formulas and functions; charts and graphs; use of SQL to generate queries",
     "unit": "Unit 1: Applied computing",
     "areaOfStudy": "Area of Study 1: Data analysis",
     "outcome": "Outcome 1",
@@ -1590,150 +1590,6 @@
     "category": "Command Term",
     "officialText": "The checking of data for accuracy and consistency that occurs after data acquisition/entry and throughout the process of manipulation and analysis. This can include proofreading, confirming the data against other sources and checking that the data visualised is consistent with the data acquired/collected.",
     "plainLanguageText": "The checking of data for accuracy and consistency that occurs after data acquisition/entry and throughout the process of manipulation and analysis. This can include proofreading, confirming the data against other sources and checking that the data visualised is consistent with the data acquired/collected.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-43",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "Database software, spreadsheet software and data visualisation software\nAn appropriate tool for running Structured Query Language (SQL) queries",
-    "plainLanguageText": "Database software, spreadsheet software and data visualisation software\nAn appropriate tool for running Structured Query Language (SQL) queries.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-44",
-    "subject": "Applied Computing",
-    "title": "Area of Study 2",
-    "category": "Command Term",
-    "officialText": "An appropriate OOP language",
-    "plainLanguageText": "An appropriate OOP language.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-45",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "Any software tools used to design and develop an innovative solution, such as a programming language, spreadsheet software, presentation software or tool for planning a project",
-    "plainLanguageText": "Any software tools used to design and develop an innovative solution, such as a programming language, spreadsheet software, presentation software or tool for planning a project.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-46",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "Database software, spreadsheet software and data visualisation software\nAn appropriate tool for running Structured Query Language (SQL) queries",
-    "plainLanguageText": "Database software, spreadsheet software and data visualisation software\nAn appropriate tool for running Structured Query Language (SQL) queries.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-47",
-    "subject": "Applied Computing",
-    "title": "Area of Study 2",
-    "category": "Command Term",
-    "officialText": "An appropriate tool for documenting and modifying project plans\nAppropriate tools for ideation and generating designs",
-    "plainLanguageText": "An appropriate tool for documenting and modifying project plans\nAppropriate tools for ideation and generating designs.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-48",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "Database software, spreadsheet software and data visualisation software\nAn appropriate tool for running Structured Query Language (SQL) queries",
-    "plainLanguageText": "Database software, spreadsheet software and data visualisation software\nAn appropriate tool for running Structured Query Language (SQL) queries.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-49",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "An appropriate tool for documenting and modifying project plans",
-    "plainLanguageText": "An appropriate tool for documenting and modifying project plans.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-50",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "An appropriate OOP language",
-    "plainLanguageText": "An appropriate OOP language.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-51",
-    "subject": "Applied Computing",
-    "title": "Area of Study 2",
-    "category": "Command Term",
-    "officialText": "Unified Modelling Language (UML) tools to create use case diagrams",
-    "plainLanguageText": "Unified Modelling Language (UML) tools to create use case diagrams.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-52",
-    "subject": "Applied Computing",
-    "title": "Area of Study 2",
-    "category": "Command Term",
-    "officialText": "An appropriate tool for documenting and modifying project plans\nAppropriate tools for ideation and generating designs",
-    "plainLanguageText": "An appropriate tool for documenting and modifying project plans\nAppropriate tools for ideation and generating designs.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-53",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "An appropriate OOP language",
-    "plainLanguageText": "An appropriate OOP language.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "applied-computing-command-term-54",
-    "subject": "Applied Computing",
-    "title": "Area of Study 1",
-    "category": "Command Term",
-    "officialText": "An appropriate tool for documenting and modifying project plans\nProgramming tools and/or integrated development environments to facilitate programming and testing of solutions",
-    "plainLanguageText": "An appropriate tool for documenting and modifying project plans\nProgramming tools and/or integrated development environments to make easier programming and testing of solutions.",
     "unit": null,
     "areaOfStudy": null,
     "outcome": null,
@@ -6794,10 +6650,10 @@
   {
     "id": "english-eal-command-term-14",
     "subject": "English EAL",
-    "title": "Feedback\nFramework of Ideas",
+    "title": "Feedback",
     "category": "Command Term",
-    "officialText": "Advice or suggestions that provide guidance for next steps in any process (including writing).\nFour broad ideas through which students engage with writing. Each idea includes elaborations (general advice and directions schools and teachers could use in the context of their communities and cohorts) and is aligned with four mentor texts (see List 2 of the VCAA VCE English and EAL Text List).",
-    "plainLanguageText": "Advice or suggestions that provide guidance for next steps in any process (including writing). Four broad ideas through which students engage with writing.",
+    "officialText": "Advice or suggestions that provide guidance for next steps in any process (including writing).",
+    "plainLanguageText": "Advice or suggestions that provide guidance for next steps in any process (including writing).",
     "unit": null,
     "areaOfStudy": null,
     "outcome": null,
@@ -6805,6 +6661,18 @@
   },
   {
     "id": "english-eal-command-term-15",
+    "subject": "English EAL",
+    "title": "Framework of Ideas",
+    "category": "Command Term",
+    "officialText": "Four broad ideas through which students engage with writing. Each idea includes elaborations (general advice and directions schools and teachers could use in the context of their communities and cohorts) and is aligned with four mentor texts (see List 2 of the VCAA VCE English and EAL Text List).",
+    "plainLanguageText": "Four broad ideas through which students engage with writing. Each idea includes elaborations (general advice and directions schools and teachers could use in their communities and cohorts). Is aligned with four mentor texts (see List 2 of the VCAA VCE English and EAL Text List).",
+    "unit": null,
+    "areaOfStudy": null,
+    "outcome": null,
+    "isCompleted": false
+  },
+  {
+    "id": "english-eal-command-term-16",
     "subject": "English EAL",
     "title": "Guided reading",
     "category": "Command Term",
@@ -6816,7 +6684,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-16",
+    "id": "english-eal-command-term-17",
     "subject": "English EAL",
     "title": "Idea",
     "category": "Command Term",
@@ -6828,7 +6696,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-17",
+    "id": "english-eal-command-term-18",
     "subject": "English EAL",
     "title": "Inferential reading",
     "category": "Command Term",
@@ -6840,7 +6708,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-18",
+    "id": "english-eal-command-term-19",
     "subject": "English EAL",
     "title": "Issue",
     "category": "Command Term",
@@ -6852,7 +6720,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-19",
+    "id": "english-eal-command-term-20",
     "subject": "English EAL",
     "title": "Language features",
     "category": "Command Term",
@@ -6864,7 +6732,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-20",
+    "id": "english-eal-command-term-21",
     "subject": "English EAL",
     "title": "Media",
     "category": "Command Term",
@@ -6876,7 +6744,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-21",
+    "id": "english-eal-command-term-22",
     "subject": "English EAL",
     "title": "Mentor texts",
     "category": "Command Term",
@@ -6888,7 +6756,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-22",
+    "id": "english-eal-command-term-23",
     "subject": "English EAL",
     "title": "Metalanguage",
     "category": "Command Term",
@@ -6900,7 +6768,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-23",
+    "id": "english-eal-command-term-24",
     "subject": "English EAL",
     "title": "Mode",
     "category": "Command Term",
@@ -6912,7 +6780,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-24",
+    "id": "english-eal-command-term-25",
     "subject": "English EAL",
     "title": "Persuasive strategies",
     "category": "Command Term",
@@ -6924,7 +6792,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-25",
+    "id": "english-eal-command-term-26",
     "subject": "English EAL",
     "title": "Print",
     "category": "Command Term",
@@ -6936,7 +6804,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-26",
+    "id": "english-eal-command-term-27",
     "subject": "English EAL",
     "title": "Purpose",
     "category": "Command Term",
@@ -6948,7 +6816,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-27",
+    "id": "english-eal-command-term-28",
     "subject": "English EAL",
     "title": "Text structures",
     "category": "Command Term",
@@ -6960,7 +6828,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-28",
+    "id": "english-eal-command-term-29",
     "subject": "English EAL",
     "title": "Visuals",
     "category": "Command Term",
@@ -6972,7 +6840,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-29",
+    "id": "english-eal-command-term-30",
     "subject": "English EAL",
     "title": "Vocabulary",
     "category": "Command Term",
@@ -6984,7 +6852,7 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-30",
+    "id": "english-eal-command-term-31",
     "subject": "English EAL",
     "title": "Voice",
     "category": "Command Term",
@@ -6996,60 +6864,12 @@
     "isCompleted": false
   },
   {
-    "id": "english-eal-command-term-31",
+    "id": "english-eal-command-term-32",
     "subject": "English EAL",
     "title": "Writing processes",
     "category": "Command Term",
     "officialText": "The steps engaged in by an author to develop their own writing. The process includes the \npre-writing stage, that is, brainstorming and gathering ideas, drafting, revising, refining, editing and publishing.",
     "plainLanguageText": "The steps engaged in by an author to develop their own writing. The process includes the \npre-writing stage, that is, brainstorming and gathering ideas, drafting, revising, refining, editing and publishing.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "english-eal-command-term-32",
-    "subject": "English EAL",
-    "title": "Writing about country",
-    "category": "Command Term",
-    "officialText": "Exploration of place and belonging.\nExplorations of physical land and country, local and international, loss of country and dispossession, remembering country and nostalgia, migration, the power of connections with land, climate change and the changing landscape, and imagined countries.\nStudents could engage with experiences like farming and land management, and with cultural expressions like country music. Others could explore traditional understandings of Country through Aboriginal and Torres Strait Islander knowledge and perspectives.",
-    "plainLanguageText": "Explorations of physical land and country, local and international, loss of country and dispossession, remembering country and nostalgia, migration, the power of connections with land, climate change and the changing landscape, and imagined countries. Students could engage with experiences like farming and land management. With cultural expressions like country music.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "english-eal-command-term-33",
-    "subject": "English EAL",
-    "title": "Writing about protest",
-    "category": "Command Term",
-    "officialText": "Explorations of conflict and contest, what it means to protest, the value of protest, the outcomes of protest, personal stories of protest, struggle and war. \nStudents could explore established figures like Martin Luther King Jr, Rosa Parks and Vida Goldstein, marginalised figures like Pemulwuy and Claudette Colvin, and figures and movements like Greta Thunberg and the BLM protests. Events like massacres in Australia and the Frontier Wars could be explored as expressions of protest – and the attendant tragedy. There could also be explorations of the success and failure of protest – and the prescient protests that gained ground after the original protest had faded. Students could consider individual protest and group protest.",
-    "plainLanguageText": "Explorations of conflict and contest, what it means to protest, the value of protest, the outcomes of protest, personal stories of protest, struggle and war. Students could consider individual protest and group protest.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "english-eal-command-term-34",
-    "subject": "English EAL",
-    "title": "Writing about personal journeys",
-    "category": "Command Term",
-    "officialText": "Explorations of ‘life’ or biographical explorations – telling our stories, telling others’ stories, the problem of telling stories, appropriation of stories, who tells the stories and our history, missing stories, marginalised and elevated stories. Students could explore personal milestones, the effects of key events on their lives, or explore these ideas through the eyes of others.\nStudents who have migrated can explore their stories of movement and disruption. They can explore the expectations of change, and the language of a new place and culture.",
-    "plainLanguageText": "Students could explore personal milestones, the effects of key events on their lives, or explore these ideas through the eyes of others. Students who have migrated can explore their stories of movement and disruption.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "english-eal-command-term-35",
-    "subject": "English EAL",
-    "title": "Writing about play",
-    "category": "Command Term",
-    "officialText": "Explorations of experiences and traditions of play and playing in many cultures and through history. \nStudents could explore play as it is applied to games, sport, acting and make-believe, music, language and images. They could also explore concepts of collaboration and connection, digital vs analogue, rules and rule breaking. There is scope to consider the ways play and play acting can represent the ‘real’ world, and to explore issues associated with using play or play acting to minimise or mitigate against events or actions.",
-    "plainLanguageText": "Students could explore play as it is applied to games, sport, acting and make-believe, music, language and images. There is scope to consider the ways play. Play acting can represent the ‘real’ world, and to explore issues associated with using play or play acting to minimise or mitigate against events or actions.",
     "unit": null,
     "areaOfStudy": null,
     "outcome": null,
@@ -23061,102 +22881,6 @@
     "unit": "Unit 4: How have creative ideas and investigation revolutionised thinking in physics?",
     "areaOfStudy": "Area of Study 2: How is scientific inquiry used to investigate fields, motion or light?",
     "outcome": "Outcome 2",
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-1",
-    "subject": "Physics",
-    "title": "Introduction",
-    "category": "Command Term",
-    "officialText": "Brief explanation or reason for undertaking the investigation, including a clear aim, a hypothesis and/or prediction and relevant background physics concepts",
-    "plainLanguageText": "Brief explanation or reason for undertaking the investigation, including a clear aim, a hypothesis and/or prediction and relevant background physics concepts.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-2",
-    "subject": "Physics",
-    "title": "Methodology and methods",
-    "category": "Command Term",
-    "officialText": "Brief outline of the selected methodology used to address the investigation question",
-    "plainLanguageText": "Brief outline of the selected method used to address the investigation question.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-3",
-    "subject": "Physics",
-    "title": "Methodology and methods",
-    "category": "Command Term",
-    "officialText": "Summary of data generation method(s) and data analysis method(s)",
-    "plainLanguageText": "Summary of data generation method(s) and data analysis method(s).",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-4",
-    "subject": "Physics",
-    "title": "Results",
-    "category": "Command Term",
-    "officialText": "Presentation of generated data/evidence in appropriate format to illustrate trends, patterns and/or relationships",
-    "plainLanguageText": "Presentation of generated data/evidence in appropriate format to illustrate trends, patterns and/or relationships.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-5",
-    "subject": "Physics",
-    "title": "Discussion",
-    "category": "Command Term",
-    "officialText": "Interpretation and evaluation of analysed primary data",
-    "plainLanguageText": "Interpretation and evaluation of analysed primary data.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-6",
-    "subject": "Physics",
-    "title": "Discussion",
-    "category": "Command Term",
-    "officialText": "Identification and evaluation of limitations in data and methods, and suggested improvements",
-    "plainLanguageText": "Identification and evaluation of limitations in data and methods, and suggested improvements.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-7",
-    "subject": "Physics",
-    "title": "Discussion",
-    "category": "Command Term",
-    "officialText": "Evaluation of results in terms of relevant physics concepts",
-    "plainLanguageText": "Evaluation of results based on relevant physics concepts.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
-    "isCompleted": false
-  },
-  {
-    "id": "physics-command-term-8",
-    "subject": "Physics",
-    "title": "Discussion",
-    "category": "Command Term",
-    "officialText": "Linking of results to investigation question and to the aim to evaluate and explain whether the investigation data and findings support the hypothesis",
-    "plainLanguageText": "Linking of results to investigation question and to the aim to evaluate and explain whether the investigation data and findings support the hypothesis.",
-    "unit": null,
-    "areaOfStudy": null,
-    "outcome": null,
     "isCompleted": false
   },
   {

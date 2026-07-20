@@ -72,6 +72,50 @@ def style_heading_level(style_name: str) -> int:
     return 0
 
 
+# Header first-cell text (lowercased) that reliably identifies a table
+# as NOT a command-term glossary, found by checking every table across
+# all 7 real VCAA files this pipeline has been run against. Two of
+# these — "Key idea" (a thematic writing-topics table) and "Poster
+# section" (a report-structure guide) — were previously slipping
+# through `looks_like_glossary_row`'s per-row heuristic entirely,
+# because their rows happen to share a real glossary row's shape (a
+# short first cell, a substantial explanatory second cell).
+#
+# This is deliberately a *denylist*, not an allowlist requiring a
+# "Term | Definition" header: real glossary tables in practice
+# sometimes have that header, but sometimes have no header row at all
+# (the first row is already real content) — an allowlist version of
+# this function wrongly rejected a whole second glossary table in one
+# document for exactly that reason, losing 15+ legitimate terms
+# ("Pseudocode", "Security threats", ...). A denylist only excludes
+# headers we've actually confirmed are wrong, and otherwise defers to
+# `looks_like_glossary_row` per row as before.
+_NON_GLOSSARY_HEADERS = {
+    "outcomes",
+    "version",
+    "key idea",
+    "english students",
+    "stage and activities",
+    "poster section",
+    "tabulation of data",
+    "key science skill",
+    "area of study",
+}
+
+
+def is_non_glossary_table(header_cells: list[str]) -> bool:
+    """Whether a table's own header row identifies it as reliably NOT
+    a command-term glossary table (see _NON_GLOSSARY_HEADERS above).
+    Only tables that clearly aren't the glossary are skipped this way —
+    every other table (including ones with no real header row) still
+    goes through `looks_like_glossary_row` per row as before.
+    """
+    if not header_cells or not header_cells[0]:
+        return False
+    first_cell = header_cells[0].strip().lower()
+    return any(first_cell == h or first_cell.startswith(h + " ") for h in _NON_GLOSSARY_HEADERS)
+
+
 def looks_like_glossary_row(term: str, definition: str) -> bool:
     """Decide whether a two-column table row genuinely looks like a
     "Command Term | Definition" glossary entry, as opposed to some

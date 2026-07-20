@@ -11,7 +11,7 @@ import re
 
 import docx
 
-from .heading_patterns import looks_like_glossary_row, pattern_level, style_heading_level
+from .heading_patterns import is_non_glossary_table, looks_like_glossary_row, pattern_level, style_heading_level
 from .models import RawBlock
 
 
@@ -99,10 +99,45 @@ def parse_docx(path: str) -> list[RawBlock]:
     # We tag each row as level=5 so extract_items.py can recognise it as
     # a ready-made (term, definition) pair rather than trying to run it
     # through the heading/body-text state machine.
+    #
+    # Tables whose own header row identifies them as clearly NOT a
+    # glossary (see is_non_glossary_table's docstring) are skipped
+    # entirely. Every other table's rows — including its first row —
+    # still go through looks_like_glossary_row() below: real glossary
+    # tables sometimes have a "Term | Definition" header row and
+    # sometimes have none at all (the first row is already real
+    # content), and a literal "Term"/"Definition" header pair fails
+    # looks_like_glossary_row() on its own anyway (its definition is
+    # only 1 word), so there's no need to guess which case we're in.
     for table in document.tables:
+        if not table.rows:
+            continue
+        header = [c.text.strip() for c in table.rows[0].cells]
+        if is_non_glossary_table(header):
+            continue
+
         for row in table.rows:
             cells = [c.text.strip() for c in row.cells]
-            if len(cells) >= 2 and cells[0] and cells[1] and looks_like_glossary_row(cells[0], cells[1]):
-                blocks.append(RawBlock(text=f"{cells[0]}\t{cells[1]}", level=5))
+            if len(cells) < 2 or not cells[0] or not cells[1]:
+                continue
+            # A source row can genuinely contain more than one term —
+            # e.g. one real VCAA document has a row whose term cell is
+            # literally "Feedback\nFramework of Ideas" (two terms as
+            # two paragraphs in one cell, evidently a document
+            # authoring slip) with the definition cell matching it
+            # paragraph-for-paragraph. Split both cells on the same
+            # newline count and pair them up rather than emitting one
+            # entry with two glued-together terms and definitions.
+            terms = cells[0].split("\n")
+            definitions = cells[1].split("\n")
+            pairs = (
+                zip(terms, definitions)
+                if len(terms) == len(definitions) and len(terms) > 1
+                else [(cells[0], cells[1])]
+            )
+            for term, definition in pairs:
+                term, definition = term.strip(), definition.strip()
+                if term and definition and looks_like_glossary_row(term, definition):
+                    blocks.append(RawBlock(text=f"{term}\t{definition}", level=5))
 
     return blocks

@@ -21,7 +21,7 @@ from collections import Counter
 
 import pdfplumber
 
-from .heading_patterns import looks_like_glossary_row, pattern_level
+from .heading_patterns import is_non_glossary_table, looks_like_glossary_row, pattern_level
 from .models import RawBlock
 
 
@@ -67,12 +67,34 @@ def parse_pdf(path: str) -> list[RawBlock]:
 
         # Glossary tables (e.g. command terms) get the same level=5
         # treatment as in parse_docx.py — see that file's comment on the
-        # table-handling pass for why.
+        # table-handling pass for why tables are only skipped based on a
+        # known-bad header, not required to have a "Term | Definition"
+        # one to be included.
         for page in pdf.pages:
             for table in page.extract_tables() or []:
+                if not table:
+                    continue
+                header = [(c or "").strip() for c in table[0]]
+                if is_non_glossary_table(header):
+                    continue
                 for row in table:
                     cells = [(c or "").strip() for c in row]
-                    if len(cells) >= 2 and cells[0] and cells[1] and looks_like_glossary_row(cells[0], cells[1]):
-                        blocks.append(RawBlock(text=f"{cells[0]}\t{cells[1]}", level=5))
+                    if len(cells) < 2 or not cells[0] or not cells[1]:
+                        continue
+                    # See parse_docx.py's identical handling for why —
+                    # a source row can contain more than one term glued
+                    # together as newline-separated paragraphs within
+                    # one cell.
+                    terms = cells[0].split("\n")
+                    definitions = cells[1].split("\n")
+                    pairs = (
+                        zip(terms, definitions)
+                        if len(terms) == len(definitions) and len(terms) > 1
+                        else [(cells[0], cells[1])]
+                    )
+                    for term, definition in pairs:
+                        term, definition = term.strip(), definition.strip()
+                        if term and definition and looks_like_glossary_row(term, definition):
+                            blocks.append(RawBlock(text=f"{term}\t{definition}", level=5))
 
     return blocks
