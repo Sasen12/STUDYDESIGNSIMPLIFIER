@@ -24,8 +24,22 @@ from pathlib import Path
 
 import numpy as np
 import nltk
+import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+# Loaded once, lazily, at first use rather than at import time — spaCy
+# model loading takes a noticeable moment (~1s), not worth paying on
+# every `import ingest.simplify` (e.g. in scripts that only need the
+# jargon dictionary) if simplify() itself never gets called.
+_nlp: spacy.language.Language | None = None
+
+
+def _get_nlp() -> spacy.language.Language:
+    global _nlp
+    if _nlp is None:
+        _nlp = spacy.load("en_core_web_sm")
+    return _nlp
 
 # jargon_dictionary.json is a flat {"jargon word": "plain replacement"}
 # map. Loaded once at import time (not per-call) since it's small and
@@ -93,26 +107,75 @@ def _replace_jargon(sentence: str) -> str:
     return _JARGON_RE.sub(repl, sentence)
 
 
-def _split_long_clauses(sentence: str) -> str:
-    """Break a sentence at semicolons, and at " and " joins between two
-    clauses that each look like they could stand alone, turning one
-    dense multi-clause sentence into several short ones.
+def _clause_split_ranges(sentence: str) -> list[tuple[int, int]]:
+    """Find character ranges in `sentence` that should be treated as
+    separators (removed, splitting the text on either side into
+    separate fragments) — semicolons, and coordinating "and"s that
+    join two genuinely independent clauses.
 
-    This is a blunt, regex-level heuristic — it doesn't parse grammar,
-    so it can occasionally split somewhere a linguist wouldn't (e.g.
-    inside a simple list like "reading and writing"). In practice this
-    trade-off favours short, scannable sentences over rare mis-splits,
-    which fits what a student skimming a study design actually wants.
+    An earlier version of this split at *every* " and ", using only
+    "is the next word lowercase?" as a guard. That over-split VCE
+    outcome statements badly: "the student should be able to discuss
+    and analyse the specific vocabulary..." became "Discuss." +
+    "Analyse the specific vocabulary...", because VCE outcomes are
+    almost always ONE instruction with several compound predicates or
+    conjoined nouns sharing an implicit subject ("the student should
+    be able to [X], [Y] and [Z]"), not several independent sentences.
+
+    The dependency-parse check here distinguishes the two cases
+    correctly: for each "and" attached to a verb/aux, only treat it as
+    a real clause boundary if that verb has its *own* subject (nsubj) —
+    i.e. "...X and the teacher should Y" (two independent clauses,
+    split) vs "...X, Y and Z" (one clause, compound predicate, don't
+    split) or "belief formation and justification" (two nouns, no verb
+    at all, don't split).
     """
-    # " and (?=[a-z])" only matches when the word after "and" starts
-    # lowercase, as a cheap way to avoid splitting right before a proper
-    # noun or the start of an unrelated new sentence.
-    parts = re.split(r";\s*| and (?=[a-z])", sentence)
-    parts = [p.strip().rstrip(".") for p in parts if p.strip()]
+    ranges = [(m.start(), m.end()) for m in re.finditer(r";\s*", sentence)]
+
+    doc = _get_nlp()(sentence)
+    for token in doc:
+        if token.dep_ != "cc" or token.text.lower() != "and":
+            continue
+        head = token.head
+        if head.pos_ not in ("VERB", "AUX"):
+            continue
+        if not any(child.dep_ in ("nsubj", "nsubjpass") for child in head.children):
+            continue
+        start, end = token.idx, token.idx + len(token.text)
+        # Consume one adjacent space on each side so the separator
+        # disappears cleanly rather than leaving a stray leading/
+        # trailing space on the fragments next to it.
+        if start > 0 and sentence[start - 1] == " ":
+            start -= 1
+        if end < len(sentence) and sentence[end] == " ":
+            end += 1
+        ranges.append((start, end))
+
+    return sorted(ranges)
+
+
+def _split_long_clauses(sentence: str) -> str:
+    """Break a sentence into separate fragments at each genuine clause
+    boundary found by `_clause_split_ranges`, then rejoin them as
+    separate sentences — turning one dense, multi-clause instruction
+    into several short, scannable ones without breaking apart compound
+    predicates or conjoined nouns that only look similar on the surface.
+    """
+    fragments: list[str] = []
+    cursor = 0
+    for start, end in _clause_split_ranges(sentence):
+        if start > cursor:
+            fragments.append(sentence[cursor:start])
+        cursor = max(cursor, end)
+    fragments.append(sentence[cursor:])
+
+    fragments = [f.strip().rstrip(".,;") for f in fragments if f.strip()]
+    if not fragments:
+        return sentence
     # Re-capitalise the first letter of each fragment (splitting can
     # leave a fragment starting mid-sentence, lowercase) and re-join
     # with ". " so each fragment reads as its own sentence.
-    return ". ".join(p[0].upper() + p[1:] if p else p for p in parts) + "."
+    return ". ".join(f[0].upper() + f[1:] if f else f for f in fragments) + "."
 
 
 def _simplify_list(text: str) -> str:

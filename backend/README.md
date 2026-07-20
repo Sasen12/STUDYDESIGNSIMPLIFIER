@@ -39,10 +39,14 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 ```
 
 The first run downloads NLTK's sentence-tokenizer data automatically
 (needs network access once; cached under `~/nltk_data` after that).
+spaCy's model is a separate, explicit download step (`en_core_web_sm`,
+~13MB) — `pip install spacy` only installs the library, not a language
+model.
 
 ## Usage
 
@@ -139,9 +143,25 @@ does, per item:
    using TF-IDF + cosine similarity to the passage's "centroid" vector
    (a standard extractive-summarisation technique). This trims a dense
    paragraph down without inventing new wording.
-2. **Rewrite** — swap known jargon words for plain-language equivalents
-   (`jargon_dictionary.json`), and split long, multi-clause sentences at
-   semicolons/"and" joins into shorter ones.
+2. **Rewrite** — swap known jargon words/phrases for plain-language
+   equivalents (`jargon_dictionary.json`), and split long, multi-clause
+   sentences at semicolons and genuine clause-boundary "and"s into
+   shorter ones. The clause split uses spaCy's dependency parser
+   (`en_core_web_sm` — a small statistical POS-tagger/parser, not a
+   generative model) rather than a naive regex: an "and" only counts as
+   a split point when its verb has its *own* subject (an `nsubj` in the
+   parse), which distinguishes a genuine second independent clause
+   ("...X and the teacher should Y" — split) from VCE's actual dominant
+   pattern, one instruction with several compound predicates or
+   conjoined nouns sharing an implicit subject ("the student should be
+   able to X, Y and Z" — don't split; "belief formation and
+   justification" — don't split, no verb at all). An earlier
+   plain-regex version split at *every* " and ", which badly
+   over-fragmented outcome statements ("discuss and analyse the
+   specific vocabulary..." became "Discuss." + "Analyse the specific
+   vocabulary...") — a full-corpus check after switching to the
+   dependency-parse version found the short-fragment failure rate went
+   from a systemic problem to 1 item out of 2,206.
 
 Text that's really a semicolon-joined list of dot points (produced when
 nested sub-bullets get folded into their parent item — see above) skips
@@ -188,6 +208,16 @@ limitations:
   work standalone as a noun/verb in their own right** (check a few real
   usage examples via `scripts/analyze_vocabulary.py` first) — skip
   anything that's consistently used to modify a following noun.
+- The dependency parser itself is imperfect (it's a statistical model,
+  not a grammar oracle) and can occasionally mislabel a subject in an
+  unusual construction — found during development: "the role of...
+  Goals **to inspire and drive** innovation" (an infinitival purpose
+  clause) got "Goals" tagged as the subject of "inspire", triggering an
+  incorrect split. This is a genuine parser limitation, not a logic
+  bug in `_clause_split_ranges` — a full-corpus regression check found
+  exactly one such case among 2,206 items, so it's an accepted,
+  documented edge case rather than something worth chasing further
+  with more heuristics.
 
 Getting genuinely fluent, reworded explanations for either limitation
 would require an LLM instead of this approach — out of scope for this
