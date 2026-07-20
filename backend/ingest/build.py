@@ -15,9 +15,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
+from .acronyms import expand_bare_acronyms, extract_acronym_definitions
 from .extract_items import assign_ids, extract_items, split_bundled_subjects
 from .models import StudyItem
 from .parse_docx import parse_docx
@@ -139,6 +140,29 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
         else:
             print(f"  {path.name} -> {subject}: {len(items)} items")
         all_items.extend(items)
+
+    # Step 5: expand bare acronyms in each item's plain-language text.
+    # VCAA documents typically define an acronym once — "relational
+    # database management systems (RDBMS)" — and then use it bare in
+    # later dot points, sometimes under a completely different Outcome.
+    # Each StudyItem is one self-contained dot point though, so a later
+    # item that only says "RDBMS" has no way to show what that means on
+    # its own. Scoped per *final* subject (after split_bundled_subjects
+    # above), and run over the combined list rather than per-file, so a
+    # definition is found regardless of which file/unit it originally
+    # appeared in. Never touches official_text, which must stay verbatim
+    # to the source.
+    items_by_subject: dict[str, list[StudyItem]] = defaultdict(list)
+    for item in all_items:
+        items_by_subject[item.subject].append(item)
+    for subject_items in items_by_subject.values():
+        definitions = extract_acronym_definitions(
+            [i.official_text for i in subject_items]
+        )
+        for item in subject_items:
+            item.plain_language_text = expand_bare_acronyms(
+                item.plain_language_text, definitions
+            )
 
     # Ids are assigned last, over the *combined* list from every file —
     # not per file — so that if two different source files ever produced

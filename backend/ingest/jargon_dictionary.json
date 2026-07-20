@@ -22,5 +22,12 @@
   "encompasses": "includes",
   "juxtaposition": "placing side by side for comparison",
   "corroborate": "confirm with other evidence",
-  "extrapolate": "use known facts to predict the unknown"
+  "extrapolate": "use known facts to predict the unknown",
+  "metalanguage": "vocabulary used to talk about language itself",
+  "propositions": "statements that can be judged true or false",
+  "proposition": "a statement that can be judged true or false",
+  "decomposition": "breaking a problem down into smaller, more manageable parts",
+  "counter-examples": "examples that prove a claim wrong",
+  "counter-example": "an example that proves a claim wrong",
+  "justification": "reasons or evidence given to support a claim"
 }

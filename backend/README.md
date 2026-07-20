@@ -25,7 +25,11 @@ ingest/
                                bundled-subject splitting and id assignment)
   simplify.py                <- StudyItem.official_text -> plain-language rewrite
   jargon_dictionary.json      <- word -> plain-language replacement map used by simplify.py
+  acronyms.py                  <- cross-item acronym expansion (see "How simplification works")
   build.py                     <- CLI entry point, wires the above together
+scripts/
+  analyze_vocabulary.py  <- authoring aid: finds candidate words for jargon_dictionary.json
+                            from the actual generated dataset (run manually, not part of build)
 ```
 
 ## Setup
@@ -146,12 +150,48 @@ it keeps every list entry intact and only swaps jargon words, since
 running sentence-tokenization/clause-splitting over a list chops each
 entry into a meaningless fragment rather than a sentence.
 
-Both steps are deterministic rule-based text manipulation, not machine
-learning "understanding" the content. Known limitation: word-for-word
-jargon substitution can read awkwardly for verbs that need sentence
-restructuring, not just a swapped word. Getting genuinely fluent,
-reworded explanations would require an LLM instead of this approach —
-out of scope for this pipeline by design.
+3. **Expand acronyms** (`acronyms.py`) — VCAA documents typically define
+   an acronym once ("relational database management systems (RDBMS)")
+   and use it bare in later dot points, sometimes under a completely
+   different Unit/Outcome. Since each StudyItem is one self-contained
+   dot point, a later item that only says "RDBMS" has no way to show
+   what that means on its own. `build.py` scans every item's
+   *official_text* for a subject to build a `{ABBR: expansion}` map
+   (`extract_acronym_definitions`), then inserts "(expansion)" after
+   the first bare use of a known acronym in each item's
+   *plain-language* text only — official_text always stays verbatim.
+   The phrase-matching requires the abbreviation's letters to exactly
+   match the initials of a short (≤6 word) run of preceding words; if
+   nothing matches exactly it's skipped rather than guessed, since a
+   looser match risks grabbing the wrong/an unrelated preceding phrase
+   (this happened during development — a naive character-length-capped
+   regex grabbed up to 80 characters of preceding text regardless of
+   word boundaries, truncating mid-word and pulling in unrelated
+   clauses; fixed by matching whole words with an exact-initials check
+   instead).
+
+Both the extract and rewrite steps are deterministic rule-based text
+manipulation, not machine learning "understanding" the content. Known
+limitations:
+
+- Word-for-word jargon substitution can read awkwardly for **verbs**
+  that need sentence restructuring, not just a swapped word (e.g.
+  "evaluate X" becoming "judge how good X is" mid-sentence).
+- It can read as outright **backwards/broken** for jargon words used
+  **adjectivally right before a noun** — e.g. an earlier attempt to add
+  "epistemological" -> "related to how we know what we know" produced
+  "analyse related to how we know what we know problems" for the
+  source phrase "analyse epistemological problems". A definition-style
+  replacement phrase is postpositive by nature (it explains something
+  *after* the fact) and can't correctly premodify a noun the way an
+  adjective does. **When adding jargon entries, only add words that
+  work standalone as a noun/verb in their own right** (check a few real
+  usage examples via `scripts/analyze_vocabulary.py` first) — skip
+  anything that's consistently used to modify a following noun.
+
+Getting genuinely fluent, reworded explanations for either limitation
+would require an LLM instead of this approach — out of scope for this
+pipeline by design.
 
 `jargon_dictionary.json` deliberately excludes VCAA command terms
 ("Analyse", "Evaluate", etc.) even though they're jargon-ish — those
@@ -159,9 +199,15 @@ already get their own authoritative definitions as real "Command Term"
 items sourced from the study design's own glossary, so duplicating them
 here would risk showing a *different*, unofficial definition inline in
 some other item's plain-language text. It also excludes standard
-curriculum vocabulary ("qualitative", "quantitative") that students are
-expected to learn, not jargon to be simplified away. Tune the file
-freely otherwise — it's just a JSON map, no code changes needed.
+curriculum vocabulary ("qualitative", "quantitative", "mathematical",
+"algorithm") that students are expected to learn, not jargon to be
+simplified away — `scripts/analyze_vocabulary.py` found that the large
+majority of long/frequent words in this corpus fall into that bucket
+rather than being genuine jargon, which is itself a useful finding: VCE
+study design language is already reasonably plain outside a
+comparatively small set of words. Tune the dictionary freely — it's
+just a JSON map, no code changes needed — but run the new entry against
+a few real examples first given the adjective-before-noun trap above.
 
 ## Known remaining data-quality caveats
 
