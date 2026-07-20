@@ -121,7 +121,23 @@ class _SubGroupHeader extends StatelessWidget {
   }
 }
 
-class _ItemCard extends StatelessWidget {
+/// Turns a semicolon-joined list of dot points (the shape produced when
+/// nested sub-bullets get folded into their parent item — see
+/// backend/README.md) into a plain, comma-joined phrase for the card's
+/// truncated preview line.
+///
+/// The detail panel renders these as real bullets, but a 2-line card
+/// preview has no room for a bullet list — left as-is, the raw
+/// semicolons show through as a broken-looking run-on line like "...such
+/// as:; interviews and surveys...; sensor data...". Stripping the colon
+/// and joining with ", " instead reads as one flowing sentence.
+String _previewText(StudyItem item) {
+  final text = item.plainLanguageText;
+  if (!text.contains('; ')) return text;
+  return text.replaceAll(':; ', ', ').replaceAll('; ', ', ');
+}
+
+class _ItemCard extends StatefulWidget {
   final StudyItem item;
   final bool isSelected;
   final VoidCallback onTap;
@@ -132,104 +148,127 @@ class _ItemCard extends StatelessWidget {
     required this.onTap,
   });
 
+  @override
+  State<_ItemCard> createState() => _ItemCardState();
+}
+
+class _ItemCardState extends State<_ItemCard> {
+  bool _pressed = false;
+
   // Outcome and Command Term items have a genuinely meaningful title
   // ("Outcome 1", "Analyse") — Key Knowledge/Key Skill points don't
   // (their "title" is just the first few words of a sentence), so for
   // those we lead with the plain-language preview instead of a fake
   // bolded headline.
   bool get _hasRealTitle =>
-      item.category == 'Outcome' || item.category == 'Command Term';
+      widget.item.category == 'Outcome' ||
+      widget.item.category == 'Command Term';
 
   @override
   Widget build(BuildContext context) {
+    final item = widget.item;
+    final isSelected = widget.isSelected;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? context.statsBg : context.cardBg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? context.borderStrong : context.border,
-            width: isSelected ? 1 : 0.5,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _hasRealTitle ? item.title : item.plainLanguageText,
-                    maxLines: _hasRealTitle ? 1 : 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          _hasRealTitle ? FontWeight.w600 : FontWeight.w500,
-                      color: context.textPrimary,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.surfaceBg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    item.category,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: context.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+      onTap: widget.onTap,
+      // Press feedback: every pressable element should feel like it
+      // heard the tap. Kept short (120ms) and transform-only so it
+      // stays cheap even when scrolling through a long results list.
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.98 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected ? context.statsBg : context.cardBg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? context.borderStrong : context.border,
+              width: isSelected ? 1 : 0.5,
             ),
-            if (_hasRealTitle) ...[
-              const SizedBox(height: 4),
-              Text(
-                item.plainLanguageText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: context.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-            ],
-            if (item.isCompleted) ...[
-              const SizedBox(height: 6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
-                  const Icon(
-                    Icons.check_circle,
-                    size: 12,
-                    color: Color(0xFF34C759),
+                  Expanded(
+                    child: Text(
+                      _hasRealTitle ? item.title : _previewText(item),
+                      maxLines: _hasRealTitle ? 1 : 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            _hasRealTitle ? FontWeight.w600 : FontWeight.w500,
+                        color: context.textPrimary,
+                        height: 1.35,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Completed',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF34C759),
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.surfaceBg,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      item.category,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: context.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
+              if (_hasRealTitle) ...[
+                const SizedBox(height: 4),
+                Text(
+                  item.plainLanguageText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              if (item.isCompleted) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      size: 12,
+                      color: Color(0xFF34C759),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Completed',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF34C759),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

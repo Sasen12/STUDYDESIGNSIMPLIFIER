@@ -30,7 +30,9 @@ class Sidebar extends StatelessWidget {
             final isSelected = subject == selectedSubject;
             return GestureDetector(
               onTap: () => onSubjectSelected(subject),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -45,10 +47,16 @@ class Sidebar extends StatelessWidget {
                               width: 3,
                             ),
                           )
-                          : null,
+                          : const Border(
+                            right: BorderSide(
+                              color: Colors.transparent,
+                              width: 3,
+                            ),
+                          ),
                 ),
-                child: Text(
-                  subject,
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -57,6 +65,7 @@ class Sidebar extends StatelessWidget {
                             ? context.textPrimary
                             : context.textSecondary,
                   ),
+                  child: Text(subject),
                 ),
               ),
             );

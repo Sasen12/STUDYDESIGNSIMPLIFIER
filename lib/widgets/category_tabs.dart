@@ -27,7 +27,9 @@ class CategoryTabs extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 6),
                   child: GestureDetector(
                     onTap: () => onCategorySelected(category),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOut,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
@@ -46,14 +48,16 @@ class CategoryTabs extends StatelessWidget {
                           width: 0.5,
                         ),
                       ),
-                      child: Text(
-                        category,
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeOut,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color:
                               isSelected ? Colors.white : context.textSecondary,
                         ),
+                        child: Text(category),
                       ),
                     ),
                   ),

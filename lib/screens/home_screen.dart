@@ -9,6 +9,7 @@ import '../widgets/detail_panel.dart';
 import '../theme/theme_model.dart';
 import '../theme/app_colors.dart';
 import '../widgets/settings_slideout.dart';
+import '../widgets/loading_screen.dart';
 
 /// Main screen for the VCE Study Tracker.
 ///
@@ -241,126 +242,143 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            if (_loading)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else if (_loadError != null)
-              Expanded(
-                child: Center(
-                  child: Text(
-                    'Could not load study data:\n$_loadError',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: context.textSecondary),
-                  ),
-                ),
-              )
-            else
-              Expanded(
-                child: Row(
-                  children: [
-                    Sidebar(
-                      subjects: _subjects,
-                      selectedSubject: _selectedSubject,
-                      onSubjectSelected: _onSubjectSelected,
-                    ),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: context.cardBg,
-                          border: Border(
-                            right: BorderSide(
-                              color: context.borderStrong,
-                              width: 0.5,
-                            ),
+            Expanded(
+              // A startup load (or its failure) is a one-time event, so a
+              // slightly longer, gentle crossfade here is appropriate —
+              // unlike the results list, which updates on every keystroke
+              // and deliberately isn't animated.
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder:
+                    (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                child:
+                    _loading
+                        ? const LoadingScreen(key: ValueKey('loading'))
+                        : _loadError != null
+                        ? Center(
+                          key: const ValueKey('error'),
+                          child: Text(
+                            'Could not load study data:\n$_loadError',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: context.textSecondary),
                           ),
-                        ),
-                        child: Column(
+                        )
+                        : Row(
+                          key: const ValueKey('content'),
                           children: [
-                            SearchBarWidget(
-                              controller: _searchController,
-                              onChanged: _onSearchChanged,
-                            ),
-                            CategoryTabs(
-                              categories: _categories,
-                              selectedCategory: _selectedCategory,
-                              onCategorySelected: _onCategorySelected,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: Divider(height: 1, color: context.border),
+                            Sidebar(
+                              subjects: _subjects,
+                              selectedSubject: _selectedSubject,
+                              onSubjectSelected: _onSubjectSelected,
                             ),
                             Expanded(
-                              child: ResultsList(
-                                items: _filteredItems,
-                                selectedItem: _selectedItem,
-                                onItemSelected: _onItemSelected,
-                                generation: _filterGeneration,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.cardBg,
-                                border: Border(
-                                  top: BorderSide(
-                                    color: context.border,
-                                    width: 0.5,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search,
-                                    size: 12,
-                                    color: context.textSecondary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: context.textSecondary,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: context.cardBg,
+                                  border: Border(
+                                    right: BorderSide(
+                                      color: context.borderStrong,
+                                      width: 0.5,
                                     ),
                                   ),
-                                  if (_searchController.text.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {
-                                        _searchController.clear();
-                                        _applyFilters();
-                                      },
-                                      child: Text(
-                                        'Clear',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: context.textPrimary,
-                                          fontWeight: FontWeight.w600,
+                                ),
+                                child: Column(
+                                  children: [
+                                    SearchBarWidget(
+                                      controller: _searchController,
+                                      onChanged: _onSearchChanged,
+                                    ),
+                                    CategoryTabs(
+                                      categories: _categories,
+                                      selectedCategory: _selectedCategory,
+                                      onCategorySelected: _onCategorySelected,
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: Divider(
+                                        height: 1,
+                                        color: context.border,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: ResultsList(
+                                        items: _filteredItems,
+                                        selectedItem: _selectedItem,
+                                        onItemSelected: _onItemSelected,
+                                        generation: _filterGeneration,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: context.cardBg,
+                                        border: Border(
+                                          top: BorderSide(
+                                            color: context.border,
+                                            width: 0.5,
+                                          ),
                                         ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.search,
+                                            size: 12,
+                                            color: context.textSecondary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: context.textSecondary,
+                                            ),
+                                          ),
+                                          if (_searchController
+                                              .text
+                                              .isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () {
+                                                _searchController.clear();
+                                                _applyFilters();
+                                              },
+                                              child: Text(
+                                                'Clear',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: context.textPrimary,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ],
-                                ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.35,
+                              child: DetailPanel(
+                                item: _selectedItem,
+                                onCompletionChanged: _onCompletionChanged,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.35,
-                      child: DetailPanel(
-                        item: _selectedItem,
-                        onCompletionChanged: _onCompletionChanged,
-                      ),
-                    ),
-                  ],
-                ),
               ),
+            ),
           ],
         ),
       ),
