@@ -79,10 +79,16 @@ def _replace_jargon(sentence: str) -> str:
     """
 
     def repl(match: re.Match) -> str:
-        # match.group(0) preserves whatever capitalisation was in the
-        # source text; we look it up lowercase since the dictionary
-        # keys are all lowercase.
-        return _JARGON[match.group(0).lower()]
+        original = match.group(0)
+        # Dictionary keys/values are all lowercase, so look up
+        # case-insensitively — but if the matched text was capitalised
+        # (most commonly a sentence-initial phrase like "On completion
+        # of..."), capitalise the replacement's first letter too,
+        # rather than silently lowercasing the start of a sentence.
+        replacement = _JARGON[original.lower()]
+        if original[:1].isupper():
+            replacement = replacement[:1].upper() + replacement[1:]
+        return replacement
 
     return _JARGON_RE.sub(repl, sentence)
 

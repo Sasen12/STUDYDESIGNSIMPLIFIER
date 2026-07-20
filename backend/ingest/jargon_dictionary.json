@@ -29,5 +29,14 @@
   "decomposition": "breaking a problem down into smaller, more manageable parts",
   "counter-examples": "examples that prove a claim wrong",
   "counter-example": "an example that proves a claim wrong",
-  "justification": "reasons or evidence given to support a claim"
+  "justification": "reasons or evidence given to support a claim",
+  "with reference to": "about",
+  "with respect to": "about",
+  "in relation to": "about",
+  "relating to": "about",
+  "in the context of": "in",
+  "in terms of": "based on",
+  "in response to": "based on",
+  "as a result of": "because of",
+  "on completion of": "after finishing"
 }

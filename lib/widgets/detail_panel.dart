@@ -185,10 +185,40 @@ class _ItemDetail extends StatelessWidget {
                 width: 0.5,
               ),
             ),
-            child: _FormattedText(
-              text: studyItem.plainLanguageText,
-              color: const Color(0xFF1C1C1E),
-            ),
+            child:
+                studyItem.plainLanguageText.trim() ==
+                        studyItem.officialText.trim()
+                    // The backend's simplifier trims prose and swaps
+                    // known jargon/phrases — for content that's already
+                    // plain (no jargon, already short), there's nothing
+                    // to change. Saying so explicitly here reads as an
+                    // honest "nothing to fix" rather than a duplicate
+                    // that looks like the feature silently failed.
+                    ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Color(0xFF34C759),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'This is already written in plain language — nothing needed simplifying.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: const Color(0xFF1C1C1E),
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                    : _FormattedText(
+                      text: studyItem.plainLanguageText,
+                      color: const Color(0xFF1C1C1E),
+                    ),
           ),
           const SizedBox(height: 24),
           Row(

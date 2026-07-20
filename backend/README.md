@@ -209,6 +209,31 @@ comparatively small set of words. Tune the dictionary freely — it's
 just a JSON map, no code changes needed — but run the new entry against
 a few real examples first given the adjective-before-noun trap above.
 
+Entries aren't limited to single words — multi-word academic connector
+phrases work too ("with reference to" -> "about", "on completion of" ->
+"after finishing"), matched the same way via `_JARGON_RE`'s word-boundary
+regex. These phrases account for a meaningful share of the corpus's
+"nothing to simplify" items (bare word-frequency analysis undercounts
+them, since `analyze_vocabulary.py` only looks at single tokens) —
+checking a candidate phrase's real frequency first (`grep`/a quick
+Python count over `officialText`) is worth doing before adding one, the
+same way `analyze_vocabulary.py` does for single words.
+
+`_replace_jargon` capitalises the replacement when the matched text was
+capitalised (e.g. a sentence-initial "On completion of" -> "After
+finishing", not "after finishing") — this matters a lot more once
+phrase entries are in play, since single lowercase jargon words rarely
+start a sentence but phrase-shaped ones like "on completion of" often
+do.
+
+Even after word- and phrase-level substitution, some items will still
+have official_text == plain_language_text — content that's already
+plain (a bare list of everyday words, or a short sentence with nothing
+matched) genuinely has nothing to simplify. The Flutter app shows an
+explicit "already written in plain language" note for these instead of
+a duplicate box, rather than trying to force a difference that isn't
+there.
+
 ## Known remaining data-quality caveats
 
 - A handful of English EAL "Command Term" entries (~1% of that subject's
