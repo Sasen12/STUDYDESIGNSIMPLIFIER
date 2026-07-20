@@ -7,47 +7,68 @@ have a choice.
 """
 from __future__ import annotations
 
+import re
+
 import docx
 
+from .heading_patterns import looks_like_glossary_row, pattern_level, style_heading_level
 from .models import RawBlock
-
-# Maps a Word paragraph style name to the heading depth we use elsewhere
-# in the pipeline (see RawBlock's docstring for what each level means).
-# If your source document uses different style names (some VCAA exports
-# use "heading 1" lowercase, or custom style names like "VCAA H1"), add
-# them here rather than touching the parsing logic below.
-_HEADING_STYLE_LEVEL = {
-    "Title": 1,
-    "Heading 1": 1,
-    "Heading 2": 2,
-    "Heading 3": 3,
-    "Heading 4": 4,
-}
 
 
 def _heading_level(paragraph) -> int:
     """Work out how "deep" a paragraph is, i.e. whether it's a heading
     and if so which level.
 
-    Word's built-in heading styles are the first and most reliable
-    signal, so we check those first. But VCAA documents don't always
-    use heading styles consistently — sometimes a section label like
-    "Key knowledge" is just a plain paragraph with **bold** text instead
-    of a proper Heading 4. So as a fallback, if every run in a short
-    paragraph is bold, we treat it as a level-4 heading too.
+    Checked in priority order:
+      1. Does the paragraph's own text match a known VCAA section label
+         ("Unit 1", "Outcome 2", "Key knowledge", ...)? This is checked
+         first and is authoritative when it matches, because it's true
+         regardless of which paragraph style the document's author used
+         for it.
+      2. Does the paragraph use *any* "Heading N"-shaped style (Word's
+         defaults, or a custom one like "VCAA Heading 5")? We treat ANY
+         such heading as at least a generic boundary — even one whose
+         specific meaning we don't track — because otherwise an
+         unrecognised heading (e.g. "School-based assessment") gets
+         mistaken for ordinary body text and silently absorbed into
+         whatever Key Knowledge/Key Skill list came just before it.
+      3. Is every run in a short paragraph bold? (Some section labels
+         are just manually bolded text with no heading style at all.)
     """
-    style_level = _HEADING_STYLE_LEVEL.get(paragraph.style.name, 0)
+    level = pattern_level(paragraph.text.strip())
+    if level:
+        return level
+
+    style_level = style_heading_level(paragraph.style.name)
     if style_level:
         return style_level
 
-    # Fallback heuristic: a short, fully-bold paragraph almost certainly
-    # a section label, not a real sentence of body text (which would be
-    # longer and wouldn't be entirely bold).
     runs = [r for r in paragraph.runs if r.text.strip()]
     if runs and all(r.bold for r in runs) and len(paragraph.text) < 60:
         return 4
 
     return 0
+
+
+# Matches "VCAA bullet level 2", "List Paragraph level 3", etc — VCAA
+# gives nested dot points (a sub-point indented under another dot
+# point) their own style distinct from the top-level bullet style, with
+# "level N" (N >= 2) in the name.
+_SUB_ITEM_STYLE_RE = re.compile(r"level\s*[2-9]", re.I)
+
+
+def _is_sub_item(paragraph) -> bool:
+    """Detect a nested sub-bullet (see RawBlock.is_sub_item's docstring
+    for why this matters) via its paragraph style name.
+
+    Style-name detection, not python-docx's numbering/ilvl API,
+    because VCAA's sub-bullets in practice aren't part of the same
+    Word numbered-list definition as their parent (each level has its
+    own named style, "VCAA bullet" vs "VCAA bullet level 2") — the
+    style name is the reliable signal here, not list numbering
+    metadata.
+    """
+    return bool(_SUB_ITEM_STYLE_RE.search(paragraph.style.name))
 
 
 def parse_docx(path: str) -> list[RawBlock]:
@@ -60,10 +81,16 @@ def parse_docx(path: str) -> list[RawBlock]:
     # Pass 1: every paragraph in the document body, in order, skipping
     # blank ones (Word documents are full of empty spacer paragraphs).
     for paragraph in document.paragraphs:
-        text = paragraph.text.strip()
+        # A manual line break (Shift+Enter) inside a paragraph comes
+        # through as a literal "\n" in paragraph.text — collapse any
+        # run of whitespace (including those) down to a single space so
+        # sentences don't end up with a stray newline mid-word-wrap.
+        text = re.sub(r"\s+", " ", paragraph.text).strip()
         if not text:
             continue
-        blocks.append(RawBlock(text=text, level=_heading_level(paragraph)))
+        blocks.append(
+            RawBlock(text=text, level=_heading_level(paragraph), is_sub_item=_is_sub_item(paragraph))
+        )
 
     # Pass 2: tables. VCAA study designs put their "Glossary of command
     # terms" in a two-column table (Term | Definition) rather than as
@@ -75,7 +102,7 @@ def parse_docx(path: str) -> list[RawBlock]:
     for table in document.tables:
         for row in table.rows:
             cells = [c.text.strip() for c in row.cells]
-            if len(cells) >= 2 and cells[0] and cells[1]:
+            if len(cells) >= 2 and cells[0] and cells[1] and looks_like_glossary_row(cells[0], cells[1]):
                 blocks.append(RawBlock(text=f"{cells[0]}\t{cells[1]}", level=5))
 
     return blocks

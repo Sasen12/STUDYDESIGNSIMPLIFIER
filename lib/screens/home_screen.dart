@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/study_item.dart';
-import '../data/sample_data.dart';
+import '../data/study_data_repository.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/category_tabs.dart';
@@ -32,22 +32,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
+  final _repository = StudyDataRepository();
+
+  bool _loading = true;
+  String? _loadError;
+
   String? _selectedSubject;
   String? _selectedCategory;
   StudyItem? _selectedItem;
-  final List<StudyItem> _items = sampleItems;
-  List<StudyItem> _filteredItems = sampleItems;
+  List<StudyItem> _items = [];
+  List<StudyItem> _filteredItems = [];
 
-  // Ordered list that drives the sidebar.  First entry is the default view.
-  final _subjects = [
-    'Software Development',
-    'Data Analytics',
-    'Business Management',
-    'General Mathematics',
-    'English',
-    'Physics',
-    'Mathematical Methods',
-  ];
+  // Populated from the loaded dataset once it arrives — the app no
+  // longer hardcodes which subjects exist, since that's driven entirely
+  // by whatever source files the backend/ pipeline was run against.
+  List<String> _subjects = [];
 
   // Category filter options.  'All' shows every category for the active subject.
   final _categories = [
@@ -61,10 +60,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Default the view to the first subject with no category filter.
-    _selectedSubject = _subjects[0];
-    _selectedCategory = _categories[0];
-    _applyFilters();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    try {
+      final items = await _repository.loadItems();
+      final subjects = items.map((i) => i.subject).toSet().toList()..sort();
+      setState(() {
+        _items = items;
+        _subjects = subjects;
+        _selectedSubject = subjects.isNotEmpty ? subjects.first : null;
+        _selectedCategory = _categories[0];
+        _loading = false;
+      });
+      _applyFilters();
+    } catch (e) {
+      setState(() {
+        _loadError = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -83,26 +99,27 @@ class _HomeScreenState extends State<HomeScreen> {
   void _applyFilters() {
     setState(() {
       _filterGeneration++;
-      _filteredItems = _items.where((item) {
-        if (_selectedSubject != null && item.subject != _selectedSubject) {
-          return false;
-        }
-        if (_selectedCategory != null &&
-            _selectedCategory != 'All' &&
-            item.category != _selectedCategory) {
-          return false;
-        }
-        if (_searchController.text.isNotEmpty) {
-          final query = _searchController.text.toLowerCase();
-          // Search across all three text fields for broad matches.
-          if (!item.title.toLowerCase().contains(query) &&
-              !item.officialText.toLowerCase().contains(query) &&
-              !item.plainLanguageText.toLowerCase().contains(query)) {
-            return false;
-          }
-        }
-        return true;
-      }).toList();
+      _filteredItems =
+          _items.where((item) {
+            if (_selectedSubject != null && item.subject != _selectedSubject) {
+              return false;
+            }
+            if (_selectedCategory != null &&
+                _selectedCategory != 'All' &&
+                item.category != _selectedCategory) {
+              return false;
+            }
+            if (_searchController.text.isNotEmpty) {
+              final query = _searchController.text.toLowerCase();
+              // Search across all three text fields for broad matches.
+              if (!item.title.toLowerCase().contains(query) &&
+                  !item.officialText.toLowerCase().contains(query) &&
+                  !item.plainLanguageText.toLowerCase().contains(query)) {
+                return false;
+              }
+            }
+            return true;
+          }).toList();
     });
   }
 
@@ -209,7 +226,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: context.statsBg,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: context.borderStrong, width: 0.5),
+                        border: Border.all(
+                          color: context.borderStrong,
+                          width: 0.5,
+                        ),
                       ),
                       child: Icon(
                         Icons.settings,
@@ -221,98 +241,126 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            Expanded(
-              child: Row(
-                children: [
-                  Sidebar(
-                    subjects: _subjects,
-                    selectedSubject: _selectedSubject,
-                    onSubjectSelected: _onSubjectSelected,
+            if (_loading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_loadError != null)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Could not load study data:\n$_loadError',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: context.textSecondary),
                   ),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: context.cardBg,
-                        border: Border(
-                          right: BorderSide(color: context.borderStrong, width: 0.5),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          SearchBarWidget(
-                            controller: _searchController,
-                            onChanged: _onSearchChanged,
-                          ),
-                          CategoryTabs(
-                            categories: _categories,
-                            selectedCategory: _selectedCategory,
-                            onCategorySelected: _onCategorySelected,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Divider(height: 1, color: context.border),
-                          ),
-                          Expanded(
-                            child: ResultsList(
-                              items: _filteredItems,
-                              selectedItem: _selectedItem,
-                              onItemSelected: _onItemSelected,
-                              generation: _filterGeneration,
+                ),
+              )
+            else
+              Expanded(
+                child: Row(
+                  children: [
+                    Sidebar(
+                      subjects: _subjects,
+                      selectedSubject: _selectedSubject,
+                      onSubjectSelected: _onSubjectSelected,
+                    ),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.cardBg,
+                          border: Border(
+                            right: BorderSide(
+                              color: context.borderStrong,
+                              width: 0.5,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: context.cardBg,
-                              border: Border(
-                                top: BorderSide(color: context.border, width: 0.5),
+                        ),
+                        child: Column(
+                          children: [
+                            SearchBarWidget(
+                              controller: _searchController,
+                              onChanged: _onSearchChanged,
+                            ),
+                            CategoryTabs(
+                              categories: _categories,
+                              selectedCategory: _selectedCategory,
+                              onCategorySelected: _onCategorySelected,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Divider(height: 1, color: context.border),
+                            ),
+                            Expanded(
+                              child: ResultsList(
+                                items: _filteredItems,
+                                selectedItem: _selectedItem,
+                                onItemSelected: _onItemSelected,
+                                generation: _filterGeneration,
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.search, size: 12, color: context.textSecondary),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: context.textSecondary,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.cardBg,
+                                border: Border(
+                                  top: BorderSide(
+                                    color: context.border,
+                                    width: 0.5,
                                   ),
                                 ),
-                                if (_searchController.text.isNotEmpty) ...[
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () {
-                                      _searchController.clear();
-                                      _applyFilters();
-                                    },
-                                    child: Text(
-                                      'Clear',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: context.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    size: 12,
+                                    color: context.textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: context.textSecondary,
                                     ),
                                   ),
+                                  if (_searchController.text.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        _applyFilters();
+                                      },
+                                      child: Text(
+                                        'Clear',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: context.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.35,
-                    child: DetailPanel(
-                      item: _selectedItem,
-                      onCompletionChanged: _onCompletionChanged,
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.35,
+                      child: DetailPanel(
+                        item: _selectedItem,
+                        onCompletionChanged: _onCompletionChanged,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

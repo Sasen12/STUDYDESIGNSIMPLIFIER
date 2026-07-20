@@ -22,6 +22,7 @@ import json
 import re
 from pathlib import Path
 
+import numpy as np
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -108,6 +109,24 @@ def _split_long_clauses(sentence: str) -> str:
     return ". ".join(p[0].upper() + p[1:] if p else p for p in parts) + "."
 
 
+def _simplify_list(text: str) -> str:
+    """Simplify text that's really a semicolon-joined list of dot
+    points (produced when extract_items.py folds nested sub-bullets
+    back into their parent item — e.g. "structural characteristics of
+    RDBMS, such as:; tables; queries; relationships...").
+
+    This is NOT prose, so running it through sentence tokenization,
+    TF-IDF extraction, and clause-splitting (as `simplify()` does for
+    ordinary official text) actively hurts it — those tools assume
+    grammatical sentences and end up chopping each list entry into a
+    meaningless sentence fragment. Instead we keep the list structure
+    intact and only apply the one rule that still makes sense for a
+    list: swapping jargon words for plain-language equivalents.
+    """
+    segments = [s.strip() for s in text.split(";") if s.strip()]
+    return "; ".join(_replace_jargon(s) for s in segments)
+
+
 def _most_representative_sentences(sentences: list[str], limit: int) -> list[str]:
     """Pick the `limit` sentences that best represent the whole passage,
     using TF-IDF + cosine similarity to a "centroid" (average) vector —
@@ -127,7 +146,10 @@ def _most_representative_sentences(sentences: list[str], limit: int) -> list[str
 
     vectorizer = TfidfVectorizer(stop_words="english")
     matrix = vectorizer.fit_transform(sentences)  # one TF-IDF row per sentence
-    centroid = matrix.mean(axis=0)  # the "average sentence" for this passage
+    # matrix.mean(axis=0) returns a np.matrix (a legacy numpy type), which
+    # newer scikit-learn's cosine_similarity refuses to accept — convert
+    # it to a plain ndarray first.
+    centroid = np.asarray(matrix.mean(axis=0))  # the "average sentence" for this passage
     scores = cosine_similarity(matrix, centroid).ravel()  # similarity of each sentence to that average
 
     # Rank sentence indices by score (highest similarity first), take
@@ -149,6 +171,14 @@ def simplify(text: str) -> str:
     text = text.strip()
     if not text:
         return ""
+
+    if ";" in text:
+        # A semicolon almost never appears in a single VCAA sentence —
+        # in practice it's the join character extract_items.py uses
+        # when it folds nested sub-bullets into their parent, so this
+        # is really a list, not prose. Handle it separately (see
+        # _simplify_list's docstring for why).
+        return _simplify_list(text)
 
     _ensure_nltk_data()
     sentences = nltk.sent_tokenize(text)  # e.g. handles "e.g." not being a sentence end

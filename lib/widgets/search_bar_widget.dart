@@ -21,7 +21,11 @@ class SearchBarWidget extends StatelessWidget {
         decoration: InputDecoration(
           hintText: 'Search across all content…',
           hintStyle: TextStyle(fontSize: 13, color: context.textSecondary),
-          prefixIcon: Icon(Icons.search, size: 16, color: context.textSecondary),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 16,
+            color: context.textSecondary,
+          ),
           filled: true,
           fillColor: context.surfaceBg,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),

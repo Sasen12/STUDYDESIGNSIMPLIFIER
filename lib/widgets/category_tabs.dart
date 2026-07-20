@@ -20,34 +20,45 @@ class CategoryTabs extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: categories.map((category) {
-            final isSelected = category == selectedCategory;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: GestureDetector(
-                onTap: () => onCategorySelected(category),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF007AFF) : context.statsBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isSelected ? const Color(0xFF007AFF) : context.borderStrong,
-                      width: 0.5,
+          children:
+              categories.map((category) {
+                final isSelected = category == selectedCategory;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: GestureDetector(
+                    onTap: () => onCategorySelected(category),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? const Color(0xFF007AFF)
+                                : context.statsBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? const Color(0xFF007AFF)
+                                  : context.borderStrong,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color:
+                              isSelected ? Colors.white : context.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                  child: Text(
-                    category,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : context.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
         ),
       ),
     );

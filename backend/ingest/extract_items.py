@@ -53,7 +53,6 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
     (or a subjects.json override) instead.
     """
     items: list[StudyItem] = []
-    subject_slug = _slug(subject)
 
     # --- Running "where are we in the document" state -----------------
     # These four variables are the entire memory of the walk: whichever
@@ -67,33 +66,48 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
     outcome_title: str | None = None
     section: str | None = None  # None | 'awaiting_outcome_statement' | 'Key Knowledge' | 'Key Skill'
 
-    # Per-category counters used to build sequential, stable ids like
-    # "software-development-key-knowledge-3". Kept separate per category
-    # (rather than one global counter) so ids read naturally and don't
-    # shift around if, say, a Key Skill gets inserted before a Key
-    # Knowledge item in a future re-run.
-    counters = {"Outcome": 0, "Key Knowledge": 0, "Key Skill": 0, "Command Term": 0}
-
     def add_item(category: str, title: str, official_text: str) -> None:
         """Build and append one StudyItem, stamped with whatever
         unit/area_of_study/outcome context we're currently inside.
+
+        id is left blank here — assign_ids() fills it in afterwards,
+        once split_bundled_subjects() (see below) has had a chance to
+        correct `subject` for documents that bundle multiple VCE
+        studies into one file. Assigning ids before that split would
+        bake in the wrong (file-level default) subject slug.
         """
-        counters[category] += 1
+        # Command Term glossary rows aren't scoped to whichever unit
+        # happened to be current when their table was encountered —
+        # they're general reference material for the whole study, not
+        # part of any one unit's content — so they deliberately don't
+        # inherit unit/area_of_study/outcome the way every other
+        # category does.
+        is_glossary = category == "Command Term"
         items.append(
             StudyItem(
-                id=f"{subject_slug}-{_slug(category)}-{counters[category]}",
+                id="",
                 subject=subject,
                 title=title,
                 category=category,
                 official_text=official_text,
-                unit=unit,
-                area_of_study=area_of_study,
-                outcome=outcome_title,
+                unit=None if is_glossary else unit,
+                area_of_study=None if is_glossary else area_of_study,
+                outcome=None if is_glossary else outcome_title,
             )
         )
 
     for block in blocks:
         text, level = block.text, block.level
+
+        if block.is_sub_item and section in ("Key Knowledge", "Key Skill") and items:
+            # A nested sub-bullet (e.g. "Boolean" indented under "types
+            # of data, such as:") means nothing to a student on its own
+            # — fold it into the dot point it belongs under instead of
+            # giving it its own StudyItem. That parent is always
+            # `items[-1]`: the item we most recently added while inside
+            # this same Key Knowledge/Key Skill section.
+            items[-1].official_text += f"; {text}"
+            continue
 
         # --- Glossary table row: "Term<TAB>Definition" -----------------
         # These come pre-packaged from the parser (level=5) and don't
@@ -122,9 +136,22 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
             section = None
             continue
 
-        if level == 2:  # "Area of Study N: ..."
+        if level == 2:  # "Area of Study N"
             area_of_study = text
             outcome_title = None
+            # Some documents write just "Area of Study 1" here and put
+            # its descriptive title ("The business idea") on its own
+            # heading line right after — flag that so we can append it
+            # below if that's what comes next.
+            section = "awaiting_area_title"
+            continue
+
+        if level == 3 and section == "awaiting_area_title" and not _OUTCOME_RE.match(text):
+            # The heading right after "Area of Study N" wasn't another
+            # Outcome/Unit/etc. — treat it as that area's descriptive
+            # title and fold it into area_of_study for a more readable
+            # label (e.g. "Area of Study 1: The business idea").
+            area_of_study = f"{area_of_study}: {text}"
             section = None
             continue
 
@@ -178,3 +205,78 @@ def extract_items(blocks: list[RawBlock], subject: str) -> list[StudyItem]:
         # one of the four StudyItem categories the app displays.
 
     return items
+
+
+# Matches a unit heading like "Unit 3: Data analytics" or
+# "Units 3 and 4: Foundation Mathematics", capturing the part after the
+# colon.
+_UNIT_SUFFIX_RE = re.compile(r"^Units?\s+\d+(?:\s+and\s+\d+)?\s*:\s*(.+)$", re.I)
+
+
+def split_bundled_subjects(items: list[StudyItem]) -> None:
+    """Some VCAA files aren't one subject's study design — they're
+    several related VCE studies bundled into a single document. The
+    combined Mathematics study design, for example, covers General
+    Mathematics, Mathematical Methods, Specialist Mathematics, and
+    Foundation Mathematics as four separate courses, each with their
+    own Unit 1-4 sequence, inside one file; the combined Applied
+    Computing document is the same for Applied Computing, Data
+    Analytics, and Software Development.
+
+    build.py assigns every item from a file the same subject up front
+    (guessed from the filename), which is wrong for these bundled
+    files. This function re-labels items in place, splitting them out
+    by their *actual* course, detected from the "Unit N: <course
+    name>" heading text — but only when that course name repeats across
+    at least two different unit numbers, which is what distinguishes a
+    genuine bundled sub-study name ("Data analytics" shared by both
+    Unit 3 and Unit 4) from an ordinary single-subject unit title that
+    happens to follow the same "Unit N: ..." shape (e.g. Business
+    Management's "Unit 1: Planning a business" — a title unique to that
+    one unit, not a second subject).
+
+    Call this once per source file, after extract_items() and before
+    simplify() — it's a no-op (leaves item.subject untouched) for
+    ordinary single-subject documents.
+    """
+    suffix_unit_numbers: dict[str, set[str]] = {}
+    for item in items:
+        if not item.unit:
+            continue
+        match = _UNIT_SUFFIX_RE.match(item.unit)
+        if not match:
+            continue
+        suffix_unit_numbers.setdefault(match.group(1).strip(), set()).add(item.unit)
+
+    bundled_course_names = {
+        suffix for suffix, units in suffix_unit_numbers.items() if len(units) >= 2
+    }
+    if not bundled_course_names:
+        return  # ordinary single-subject document — nothing to split
+
+    for item in items:
+        if not item.unit:
+            continue
+        match = _UNIT_SUFFIX_RE.match(item.unit)
+        if match and match.group(1).strip() in bundled_course_names:
+            item.subject = match.group(1).strip().title()
+
+
+def assign_ids(items: list[StudyItem]) -> None:
+    """Fill in each item's `id`, in place, from its *final* subject —
+    call this last, after split_bundled_subjects() has corrected
+    `subject` for any bundled documents, so ids like
+    "general-mathematics-key-skill-4" always match the subject the item
+    actually ends up filed under.
+
+    Counters are kept per (subject, category) rather than one global
+    counter, both so ids read naturally (each subject's items number
+    from 1) and so re-running the pipeline after adding a new source
+    file doesn't renumber — and thus doesn't invalidate — ids for
+    subjects that didn't change.
+    """
+    counters: dict[tuple[str, str], int] = {}
+    for item in items:
+        key = (item.subject, item.category)
+        counters[key] = counters.get(key, 0) + 1
+        item.id = f"{_slug(item.subject)}-{_slug(item.category)}-{counters[key]}"

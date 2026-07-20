@@ -19,10 +19,19 @@ class RawBlock:
     level 5 is a special case used only for glossary/table rows (see
     parse_docx.py / parse_pdf.py) — it's not a "depth", it's a marker
     that this block is a ready-made "Term <TAB> Definition" pair.
+
+    is_sub_item marks a nested sub-bullet (a dot point indented under
+    another dot point, e.g. "text (character, string)" / "numeric" /
+    "Boolean" all nested under a parent point like "characteristics of
+    data types, such as:"). extract_items.py folds these into their
+    parent item's text rather than giving each one its own StudyItem —
+    a bare word like "Boolean" means nothing to a student without the
+    sentence it was nested under.
     """
 
     text: str
     level: int = 0
+    is_sub_item: bool = False
 
 
 @dataclass

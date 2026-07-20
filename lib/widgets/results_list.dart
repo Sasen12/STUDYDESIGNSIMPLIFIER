@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../models/study_item.dart';
 import '../theme/app_colors.dart';
 
+/// Displays [items] grouped under Unit / Area of Study headers, in the
+/// order the backend pipeline emitted them (Unit 1 -> its Areas of
+/// Study -> each Outcome and its Key Knowledge/Key Skill points, then
+/// Unit 2, ...). Items with no unit (Command Term glossary entries)
+/// are grouped under a trailing "Glossary" header instead.
+///
+/// A flat, ungrouped list works fine for a handful of hand-written
+/// sample items, but a real subject can have 100+ extracted items —
+/// without this grouping a student sees one undifferentiated scroll
+/// with no sense of which unit/outcome they're looking at.
 class ResultsList extends StatelessWidget {
   final List<StudyItem> items;
   final StudyItem? selectedItem;
@@ -27,91 +37,201 @@ class ResultsList extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
+    final children = <Widget>[];
+    String? lastUnit;
+    String? lastAreaOfStudy;
+    var glossaryHeaderShown = false;
+
+    for (final item in items) {
+      if (item.unit == null) {
+        // Command Term glossary entries aren't scoped to a unit — group
+        // them under one trailing header instead of a Unit/Area one.
+        if (!glossaryHeaderShown) {
+          children.add(const _GroupHeader('Glossary of Command Terms'));
+          glossaryHeaderShown = true;
+        }
+      } else {
+        if (item.unit != lastUnit) {
+          children.add(_GroupHeader(item.unit!));
+          lastUnit = item.unit;
+          lastAreaOfStudy = null; // force the area header to re-show too
+        }
+        if (item.areaOfStudy != lastAreaOfStudy) {
+          lastAreaOfStudy = item.areaOfStudy;
+          if (item.areaOfStudy != null) {
+            children.add(_SubGroupHeader(item.areaOfStudy!));
+          }
+        }
+      }
+      children.add(
+        _ItemCard(
+          item: item,
+          isSelected: item.id == selectedItem?.id,
+          onTap: () => onItemSelected(item),
+        ),
+      );
+    }
+
+    return ListView(
       key: ValueKey(generation),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final isSelected = item.id == selectedItem?.id;
-        return GestureDetector(
-          onTap: () => onItemSelected(item),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isSelected ? context.statsBg : context.cardBg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? context.borderStrong : context.border,
-                width: isSelected ? 1 : 0.5,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+}
+
+class _GroupHeader extends StatelessWidget {
+  final String text;
+  const _GroupHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 16, 4, 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: context.textPrimary,
+        ),
+      ),
+    );
+  }
+}
+
+class _SubGroupHeader extends StatelessWidget {
+  final String text;
+  const _SubGroupHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF007AFF),
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _ItemCard extends StatelessWidget {
+  final StudyItem item;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ItemCard({
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  // Outcome and Command Term items have a genuinely meaningful title
+  // ("Outcome 1", "Analyse") — Key Knowledge/Key Skill points don't
+  // (their "title" is just the first few words of a sentence), so for
+  // those we lead with the plain-language preview instead of a fake
+  // bolded headline.
+  bool get _hasRealTitle =>
+      item.category == 'Outcome' || item.category == 'Command Term';
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? context.statsBg : context.cardBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? context.borderStrong : context.border,
+            width: isSelected ? 1 : 0.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: context.textPrimary,
-                        ),
-                      ),
+                Expanded(
+                  child: Text(
+                    _hasRealTitle ? item.title : item.plainLanguageText,
+                    maxLines: _hasRealTitle ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          _hasRealTitle ? FontWeight.w600 : FontWeight.w500,
+                      color: context.textPrimary,
+                      height: 1.35,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: context.surfaceBg,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        item.category,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: context.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.plainLanguageText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.textSecondary,
-                    height: 1.4,
                   ),
                 ),
-                if (item.isCompleted) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle, size: 12, color: const Color(0xFF34C759)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Completed',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: const Color(0xFF34C759),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
                   ),
-                ],
+                  decoration: BoxDecoration(
+                    color: context.surfaceBg,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    item.category,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: context.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-        );
-      },
+            if (_hasRealTitle) ...[
+              const SizedBox(height: 4),
+              Text(
+                item.plainLanguageText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            if (item.isCompleted) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    size: 12,
+                    color: Color(0xFF34C759),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Completed',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF34C759),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

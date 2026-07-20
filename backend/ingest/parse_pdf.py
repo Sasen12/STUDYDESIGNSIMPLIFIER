@@ -12,38 +12,17 @@ parser has to *infer* structure that parse_docx.py gets for free:
      subject-specific subheading the regexes don't know about).
 
 If extraction quality is poor on a real file, start by checking whether
-its headings actually match _HEADING_PATTERNS below — VCAA's exact
-wording can vary a little between subjects and years.
+its headings actually match HEADING_PATTERNS in heading_patterns.py —
+VCAA's exact wording can vary a little between subjects and years.
 """
 from __future__ import annotations
 
-import re
 from collections import Counter
 
 import pdfplumber
 
+from .heading_patterns import looks_like_glossary_row, pattern_level
 from .models import RawBlock
-
-# (pattern, heading level) — checked in order, first match wins.
-# Matches RawBlock's level numbering: Unit=1, Area of Study=2,
-# Outcome=3, Key knowledge/Key skills=4.
-_HEADING_PATTERNS = [
-    (re.compile(r"^Unit\s+\d+", re.I), 1),
-    (re.compile(r"^Area of [Ss]tudy\s+\d+", re.I), 2),
-    (re.compile(r"^Outcome\s+\d+", re.I), 3),
-    (re.compile(r"^Key (knowledge|skills)\b", re.I), 4),
-]
-
-
-def _pattern_level(text: str) -> int:
-    """Check a line of text against the known VCAA section-label
-    patterns and return the matching heading level, or 0 if it's
-    ordinary body text.
-    """
-    for pattern, level in _HEADING_PATTERNS:
-        if pattern.match(text):
-            return level
-    return 0
 
 
 def parse_pdf(path: str) -> list[RawBlock]:
@@ -81,7 +60,7 @@ def parse_pdf(path: str) -> list[RawBlock]:
             # fall back to "bigger than body text" when no known pattern
             # matched — this stops random large pull-quotes or footers
             # from being misread as real structural headings.
-            level = _pattern_level(text)
+            level = pattern_level(text)
             if not level and size > body_size + 1:
                 level = 4  # unrecognised but visually a heading — treat as minor
             blocks.append(RawBlock(text=text, level=level))
@@ -93,7 +72,7 @@ def parse_pdf(path: str) -> list[RawBlock]:
             for table in page.extract_tables() or []:
                 for row in table:
                     cells = [(c or "").strip() for c in row]
-                    if len(cells) >= 2 and cells[0] and cells[1]:
+                    if len(cells) >= 2 and cells[0] and cells[1] and looks_like_glossary_row(cells[0], cells[1]):
                         blocks.append(RawBlock(text=f"{cells[0]}\t{cells[1]}", level=5))
 
     return blocks

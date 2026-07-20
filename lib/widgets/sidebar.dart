@@ -20,9 +20,7 @@ class Sidebar extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: context.cardBg,
-          border: Border(
-            right: BorderSide(color: context.border, width: 0.5),
-          ),
+          border: Border(right: BorderSide(color: context.border, width: 0.5)),
         ),
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -33,21 +31,31 @@ class Sidebar extends StatelessWidget {
             return GestureDetector(
               onTap: () => onSubjectSelected(subject),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? context.statsBg : Colors.transparent,
-                  border: isSelected
-                      ? Border(
-                          right: BorderSide(color: const Color(0xFF007AFF), width: 3),
-                        )
-                      : null,
+                  border:
+                      isSelected
+                          ? Border(
+                            right: BorderSide(
+                              color: const Color(0xFF007AFF),
+                              width: 3,
+                            ),
+                          )
+                          : null,
                 ),
                 child: Text(
                   subject,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected ? context.textPrimary : context.textSecondary,
+                    color:
+                        isSelected
+                            ? context.textPrimary
+                            : context.textSecondary,
                   ),
                 ),
               ),

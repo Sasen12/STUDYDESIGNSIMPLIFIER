@@ -5,24 +5,27 @@ the Flutter app displays, with a plain-language rewrite generated for
 each item.
 
 This is an **offline pipeline**, not a running server: you run it
-locally whenever you have new/updated study design files, and commit
-the resulting JSON. The Flutter app just reads that JSON as a bundled
-asset — it never talks to this code at runtime.
+locally whenever you have new/updated study design files, then copy the
+output over the Flutter app's bundled asset (`../assets/data/study_items.json`)
+and commit both. The Flutter app just reads that JSON at startup — it
+never talks to this code at runtime.
 
 ```
 source_docs/          <- drop your .docx / .pdf study design files here (gitignored)
   subjects.json        <- optional: {"filename.docx": "Display Subject Name"} overrides
 output/
-  study_items.json      <- generated dataset (this IS committed — it's what the app ships)
+  study_items.json      <- generated dataset (copy this to ../assets/data/ — see Usage)
 ingest/
   models.py             <- RawBlock / StudyItem data shapes
-  parse_docx.py          <- .docx -> RawBlock list (uses paragraph styles)
-  parse_pdf.py            <- .pdf -> RawBlock list (uses font-size + regex heuristics)
-  extract_items.py         <- RawBlock list -> StudyItem list (the Unit/Area of Study/
-                              Outcome/Key knowledge/Key skills state machine)
-  simplify.py               <- StudyItem.official_text -> plain-language rewrite
-  jargon_dictionary.json     <- word -> plain-language replacement map used by simplify.py
-  build.py                    <- CLI entry point, wires the above together
+  heading_patterns.py    <- shared VCAA section-label regexes + glossary-row filtering
+  parse_docx.py           <- .docx -> RawBlock list (uses paragraph styles)
+  parse_pdf.py             <- .pdf -> RawBlock list (uses font-size + regex heuristics)
+  extract_items.py          <- RawBlock list -> StudyItem list (the Unit/Area of Study/
+                               Outcome/Key knowledge/Key skills state machine, plus
+                               bundled-subject splitting and id assignment)
+  simplify.py                <- StudyItem.official_text -> plain-language rewrite
+  jargon_dictionary.json      <- word -> plain-language replacement map used by simplify.py
+  build.py                     <- CLI entry point, wires the above together
 ```
 
 ## Setup
@@ -47,22 +50,36 @@ The first run downloads NLTK's sentence-tokenizer data automatically
    ```json
    { "sd_2024_accredited.docx": "Software Development" }
    ```
+   Note some VCAA files bundle several courses into one document (the
+   combined Mathematics study design covers General/Specialist/Foundation
+   Mathematics and Mathematical Methods; the combined Applied Computing
+   document covers Applied Computing, Data Analytics, and Software
+   Development) — `subjects.json` only needs a *default* name for these,
+   since `extract_items.split_bundled_subjects()` automatically detects
+   and splits them into their real per-course subjects based on each
+   Unit's own heading text (e.g. "Unit 3: Data analytics").
 3. Run the pipeline:
    ```bash
    python -m ingest.build
    ```
+   Add `--dump-blocks output/blocks` to also write each source file's raw
+   parsed paragraphs (with detected heading level) as its own JSON file —
+   useful for seeing exactly what the parser saw before debugging a
+   document whose extracted item count looks wrong.
 4. Check the console output — it prints how many items were extracted
-   per file, and warns if any file produced **0 items** (almost always
-   means that file's headings don't match the patterns below and the
-   parser needs a small tweak).
-5. Commit `output/study_items.json`. Wiring it into the Flutter app (as
-   a bundled asset, replacing `lib/data/sample_data.dart`) is a
-   follow-up step, not done yet.
+   per file (and how a bundled file split across subjects), and warns if
+   any file produced **0 items** (almost always means that file's
+   headings don't match the patterns below and the parser needs a small
+   tweak).
+5. Copy the result into the Flutter app and commit both:
+   ```bash
+   cp output/study_items.json ../assets/data/study_items.json
+   ```
 
 ## How extraction works
 
 Both parsers reduce their very different source formats down to a
-common list of `RawBlock`s (a paragraph of text + a heading depth 0-4),
+common list of `RawBlock`s (a paragraph of text + a heading depth 0-5),
 so `extract_items.py` only has to understand one thing: VCAA's
 consistent document structure —
 
@@ -73,20 +90,39 @@ Unit N                          (level 1)
       <outcome statement paragraph>   -> one "Outcome" StudyItem
       Key knowledge                    (level 4)
         <dot point>                     -> one "Key Knowledge" StudyItem
-        <dot point>                     -> one "Key Knowledge" StudyItem
+        <nested sub-bullet>                -> folded into the dot point above,
+                                               not its own item (see is_sub_item)
       Key skills                       (level 4)
         <dot point>                     -> one "Key Skill" StudyItem
 ```
 
 Glossary tables ("Term | Definition", e.g. VCAA's command-term glossary)
 are detected separately and become `"Command Term"` items regardless of
-where they appear in the document.
+where they appear in the document — `heading_patterns.looks_like_glossary_row()`
+filters out other two-column tables VCAA documents also use (assessment
+mark-allocation tables, document version-history tables, prerequisite/
+overlap tables) that have the same two-column shape but aren't glossary
+content.
+
+Heading detection checks a heading's own **wording** first (e.g. "Unit
+3", "Key knowledge" — reliable regardless of styling), then falls back
+to its Word paragraph style (`heading_patterns.style_heading_level()`,
+which generically matches any "*Heading N*"-shaped style name, since
+VCAA documents use inconsistent custom style names like "VCAA Heading
+5" rather than Word's defaults). Items are emitted in natural document
+reading order (Unit 1 → its Areas of Study → each Outcome and its Key
+Knowledge/Key Skill points → Unit 2 → ...), which the Flutter app's
+results list relies on for its Unit/Area of Study grouping — `build.py`
+deliberately sorts the final output by subject only (a stable sort) so
+this order is preserved, not re-sorted alphabetically by category.
 
 If a real study design's wording differs even slightly from this (e.g.
 "Areas of Study" plural, or a document that doesn't use Word heading
 styles at all), extraction for that file will likely come back empty or
 partial — the fix is almost always a small regex/style-name tweak in
-`extract_items.py`, `parse_docx.py`, or `parse_pdf.py`, not a rewrite.
+`extract_items.py`, `parse_docx.py`, `parse_pdf.py`, or
+`heading_patterns.py`, not a rewrite. Start by checking that file's
+`--dump-blocks` output.
 
 ## How simplification works
 
@@ -103,14 +139,36 @@ does, per item:
    (`jargon_dictionary.json`), and split long, multi-clause sentences at
    semicolons/"and" joins into shorter ones.
 
+Text that's really a semicolon-joined list of dot points (produced when
+nested sub-bullets get folded into their parent item — see above) skips
+steps 1-2 entirely and goes through a separate list-aware path instead:
+it keeps every list entry intact and only swaps jargon words, since
+running sentence-tokenization/clause-splitting over a list chops each
+entry into a meaningless fragment rather than a sentence.
+
 Both steps are deterministic rule-based text manipulation, not machine
 learning "understanding" the content. Known limitation: word-for-word
 jargon substitution can read awkwardly for verbs that need sentence
-restructuring, not just a swapped word (e.g. "evaluate X" becoming
-"judge how good X is" mid-sentence). Getting genuinely fluent, reworded
-explanations would require an LLM instead of this approach — out of
-scope for this pipeline by design (see project chat history for why
-scikit-learn/extractive was chosen over that).
+restructuring, not just a swapped word. Getting genuinely fluent,
+reworded explanations would require an LLM instead of this approach —
+out of scope for this pipeline by design.
 
-Tune `jargon_dictionary.json` freely — it's just a JSON map, no code
-changes needed to add/adjust entries.
+`jargon_dictionary.json` deliberately excludes VCAA command terms
+("Analyse", "Evaluate", etc.) even though they're jargon-ish — those
+already get their own authoritative definitions as real "Command Term"
+items sourced from the study design's own glossary, so duplicating them
+here would risk showing a *different*, unofficial definition inline in
+some other item's plain-language text. It also excludes standard
+curriculum vocabulary ("qualitative", "quantitative") that students are
+expected to learn, not jargon to be simplified away. Tune the file
+freely otherwise — it's just a JSON map, no code changes needed.
+
+## Known remaining data-quality caveats
+
+- A handful of English EAL "Command Term" entries (~1% of that subject's
+  items) come from a differently-structured table in that document
+  (columns aren't a clean Term/Definition pair) and read oddly — not yet
+  specifically filtered.
+- Extraction heuristics are tuned against the 7 real VCAA files this
+  pipeline has been run against so far; a new subject's file may need
+  small tweaks (see "How extraction works" above).

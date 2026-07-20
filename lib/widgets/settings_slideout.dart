@@ -14,21 +14,21 @@ class SettingsSlideout extends StatefulWidget {
       barrierLabel: 'Settings',
       barrierColor: Colors.black26,
       transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (ctx, anim, _) => SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(1, 0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: SettingsSlideout(themeModel: themeModel),
-        ),
-      ),
+      pageBuilder:
+          (ctx, anim, _) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+            ),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SettingsSlideout(themeModel: themeModel),
+            ),
+          ),
       transitionBuilder: (ctx, anim, _, child) {
-        return FadeTransition(
-          opacity: anim,
-          child: child,
-        );
+        return FadeTransition(opacity: anim, child: child);
       },
     );
   }
@@ -91,7 +91,11 @@ class _SettingsSlideoutState extends State<SettingsSlideout> {
                         color: context.statsBg,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Icon(Icons.close, size: 14, color: context.textSecondary),
+                      child: Icon(
+                        Icons.close,
+                        size: 14,
+                        color: context.textSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -104,10 +108,7 @@ class _SettingsSlideoutState extends State<SettingsSlideout> {
                 children: [
                   Text(
                     'Dark Mode',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: context.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 15, color: context.textPrimary),
                   ),
                   Switch(
                     value: widget.themeModel.isDark,
@@ -130,12 +131,18 @@ class _SettingsSlideoutState extends State<SettingsSlideout> {
                 children: [
                   Text(
                     'VCE Study Tracker v1.0',
-                    style: TextStyle(fontSize: 12, color: context.textSecondary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'A study tool for VCE subjects.',
-                    style: TextStyle(fontSize: 12, color: context.textSecondary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.textSecondary,
+                    ),
                   ),
                 ],
               ),
