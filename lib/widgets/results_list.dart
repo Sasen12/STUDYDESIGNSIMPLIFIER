@@ -122,20 +122,26 @@ class _SubGroupHeader extends StatelessWidget {
   }
 }
 
-/// Turns a semicolon-joined list of dot points (the shape produced when
-/// nested sub-bullets get folded into their parent item — see
-/// backend/README.md) into a plain, comma-joined phrase for the card's
-/// truncated preview line.
+/// A short, clean one-line headline for a card — not the full preview
+/// text truncated wherever the 2nd line happens to run out.
 ///
-/// The detail panel renders these as real bullets, but a 2-line card
-/// preview has no room for a bullet list — left as-is, the raw
-/// semicolons show through as a broken-looking run-on line like "...such
-/// as:; interviews and surveys...; sensor data...". Stripping the colon
-/// and joining with ", " instead reads as one flowing sentence.
-String _previewText(StudyItem item) {
+/// List-shaped content (produced when nested sub-bullets get folded
+/// into their parent item — see backend/README.md) always has a short
+/// natural lead-in before its first semicolon ("types and purposes of
+/// qualitative and quantitative data, such as:; interviews and
+/// surveys...; sensor data..."). Showing just that lead-in gives a
+/// clean, short title instead of either a mid-word ellipsis cut or a
+/// long joined-list sentence that reads near-identically to the
+/// official text (list items rarely contain jargon to swap, so their
+/// plain-language and official text are often the same anyway — the
+/// value here is a scannable label, not a second copy of the content).
+/// Non-list content has no such natural short lead-in, so it falls
+/// back to the full text with the UI's own line-clamp truncation.
+String _cardHeadline(StudyItem item) {
   final text = item.plainLanguageText;
   if (!text.contains('; ')) return text;
-  return text.replaceAll(':; ', ', ').replaceAll('; ', ', ');
+  final intro = text.split(';').first.trim();
+  return intro;
 }
 
 class _ItemCard extends StatefulWidget {
@@ -210,7 +216,7 @@ class _ItemCardState extends State<_ItemCard> {
                         children: [
                           Expanded(
                             child: Text(
-                              _hasRealTitle ? item.title : _previewText(item),
+                              _hasRealTitle ? item.title : _cardHeadline(item),
                               maxLines: _hasRealTitle ? 1 : 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

@@ -2,36 +2,46 @@ import 'package:flutter/material.dart';
 import 'theme/theme_model.dart';
 import 'screens/home_screen.dart';
 
-void main() {
-  runApp(const VCEStudyTrackerApp());
+Future<void> main() async {
+  // Needed before using SharedPreferences (inside ThemeModel.load())
+  // this early, ahead of runApp.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final themeModel = ThemeModel();
+  // Awaited here rather than loaded lazily inside the widget tree, so
+  // the app never flashes light mode and then flips to a saved dark
+  // preference on the first frame.
+  await themeModel.load();
+
+  runApp(VCEStudyTrackerApp(themeModel: themeModel));
 }
 
 class VCEStudyTrackerApp extends StatefulWidget {
-  const VCEStudyTrackerApp({super.key});
+  final ThemeModel themeModel;
+
+  const VCEStudyTrackerApp({super.key, required this.themeModel});
 
   @override
   State<VCEStudyTrackerApp> createState() => _VCEStudyTrackerAppState();
 }
 
 class _VCEStudyTrackerAppState extends State<VCEStudyTrackerApp> {
-  final _themeModel = ThemeModel();
-
   @override
   void dispose() {
-    _themeModel.dispose();
+    widget.themeModel.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _themeModel,
+      listenable: widget.themeModel,
       builder: (context, _) {
         return MaterialApp(
           title: 'VCE Study Tracker',
           debugShowCheckedModeBanner: false,
-          theme: _themeModel.themeData,
-          home: HomeScreen(themeModel: _themeModel),
+          theme: widget.themeModel.themeData,
+          home: HomeScreen(themeModel: widget.themeModel),
         );
       },
     );

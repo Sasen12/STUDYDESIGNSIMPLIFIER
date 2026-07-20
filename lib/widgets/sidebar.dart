@@ -23,49 +23,48 @@ class Sidebar extends StatelessWidget {
           border: Border(right: BorderSide(color: context.border, width: 0.5)),
         ),
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
           itemCount: subjects.length,
           itemBuilder: (context, index) {
             final subject = subjects[index];
             final isSelected = subject == selectedSubject;
-            return GestureDetector(
-              onTap: () => onSubjectSelected(subject),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? context.statsBg : Colors.transparent,
-                  border:
-                      isSelected
-                          ? Border(
-                            right: BorderSide(
-                              color: const Color(0xFF007AFF),
-                              width: 3,
-                            ),
-                          )
-                          : const Border(
-                            right: BorderSide(
-                              color: Colors.transparent,
-                              width: 3,
-                            ),
-                          ),
-                ),
-                child: AnimatedDefaultTextStyle(
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: GestureDetector(
+                onTap: () => onSubjectSelected(subject),
+                // macOS sidebars (Finder, Mail, System Settings) mark
+                // the active row with a solid accent-tinted capsule
+                // inset from the edges, not a full-bleed highlight or
+                // a border stripe — that's the specific detail that
+                // reads as "native Mac" rather than a generic list.
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOut,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
                     color:
                         isSelected
-                            ? context.textPrimary
-                            : context.textSecondary,
+                            ? const Color(0xFF007AFF).withValues(alpha: 0.14)
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(subject),
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOut,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color:
+                          isSelected
+                              ? const Color(0xFF007AFF)
+                              : context.textSecondary,
+                    ),
+                    child: Text(subject),
+                  ),
                 ),
               ),
             );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/study_item.dart';
 import '../data/study_data_repository.dart';
+import '../data/preferences_repository.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/category_tabs.dart';
@@ -21,7 +22,10 @@ import '../widgets/loading_screen.dart';
 ///      plain-language explanation (35 % of window width).
 ///
 /// State is managed with plain [setState]; filtering is done entirely
-/// in memory via [_applyFilters].  No backend or persistence layer yet.
+/// in memory via [_applyFilters]. Completion status is persisted via
+/// [PreferencesRepository] (SharedPreferences) — study content itself
+/// still isn't, since it's re-read fresh from the bundled asset every
+/// launch.
 class HomeScreen extends StatefulWidget {
   final ThemeModel themeModel;
 
@@ -34,6 +38,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   final _repository = StudyDataRepository();
+  final _preferences = PreferencesRepository();
 
   bool _loading = true;
   String? _loadError;
@@ -66,7 +71,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadItems() async {
     try {
-      final items = await _repository.loadItems();
+      final results = await Future.wait([
+        _repository.loadItems(),
+        _preferences.loadCompletedIds(),
+      ]);
+      final items = results[0] as List<StudyItem>;
+      final completedIds = results[1] as Set<String>;
+      // The dataset itself is re-read fresh from the bundled asset
+      // every launch (it's not user data), but which items a student
+      // has marked complete IS user data — restore that onto the
+      // freshly-loaded items rather than starting them all unchecked.
+      for (final item in items) {
+        if (completedIds.contains(item.id)) {
+          item.isCompleted = true;
+        }
+      }
       final subjects = items.map((i) => i.subject).toSet().toList()..sort();
       setState(() {
         _items = items;
@@ -157,6 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedItem!.isCompleted = completed;
     });
+    _preferences.saveCompletedIds(
+      _items.where((i) => i.isCompleted).map((i) => i.id).toSet(),
+    );
   }
 
   /// Opens the settings slideout panel from the right edge.
