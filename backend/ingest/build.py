@@ -1,9 +1,5 @@
 """CLI entry point: source_docs/*.docx|*.pdf -> output/study_items.json
 
-This is the "top" of the pipeline — it doesn't know how to parse
-documents or simplify text itself, it just wires the other modules
-together in order for every file it finds:
-
     parse_docx/parse_pdf -> extract_items -> simplify -> write JSON
 
 Usage:
@@ -25,22 +21,15 @@ from .parse_docx import parse_docx
 from .parse_pdf import parse_pdf
 from .simplify import simplify
 
-# Which parser function handles which file extension. Adding support for
-# a new source format later (e.g. .doc, .txt) means writing a
-# parse_x(path) -> list[RawBlock] function and adding one line here —
-# nothing else in this file needs to change.
 _PARSERS = {".docx": parse_docx, ".pdf": parse_pdf}
 
 
 def _subject_for(path: Path, overrides: dict[str, str]) -> str:
-    """Work out the display subject name for one source file.
+    """Display subject name for one file: overrides.json entry if
+    present, else title-cased filename.
 
-    Study design documents don't reliably state their own subject name
-    anywhere machine-readable, so by default we guess from the filename
-    (software_development.docx -> "Software Development"). If that
-    guess is wrong, or the filename is a code you don't want shown to
-    students (e.g. "vce_sd_2024.pdf"), add an explicit entry to
-    source_docs/subjects.json instead of renaming the file.
+    Inputs: path (Path); overrides (dict[str, str]).
+    Outputs: str.
     """
     if path.name in overrides:
         return overrides[path.name]
@@ -48,9 +37,11 @@ def _subject_for(path: Path, overrides: dict[str, str]) -> str:
 
 
 def _load_overrides(input_dir: Path) -> dict[str, str]:
-    """Load source_docs/subjects.json if present — an optional
-    {"filename.docx": "Display Subject Name"} map for when the
-    filename-based guess in _subject_for isn't good enough.
+    """Load source_docs/subjects.json if present.
+
+    Inputs: input_dir (Path).
+    Outputs: dict[str, str] — {filename: subject name}, {} if no file.
+    Exits the process if the file exists but is invalid JSON.
     """
     config_path = input_dir / "subjects.json"
     if not config_path.exists():
@@ -58,25 +49,16 @@ def _load_overrides(input_dir: Path) -> dict[str, str]:
     try:
         return json.loads(config_path.read_text())
     except json.JSONDecodeError as e:
-        # A raw JSONDecodeError traceback here just points into
-        # json.loads() internals — doesn't say which file has the
-        # problem. subjects.json is small and hand-edited, so a typo
-        # (trailing comma, missing quote) is a realistic mistake worth
-        # a clear, immediate message rather than a crash to debug.
         print(f"ERROR: {config_path} is not valid JSON: {e}", file=sys.stderr)
         raise SystemExit(1)
 
 
 def _dump_blocks(path: Path, blocks: list, dump_dir: Path) -> None:
-    """Write one file's parsed RawBlocks out as their own JSON file —
-    e.g. source_docs/2023PhysicsSD.docx -> output/blocks/2023PhysicsSD.json.
+    """Debug aid: write one file's raw parsed blocks as their own JSON
+    file, for inspecting extraction before extract_items.py runs.
 
-    This is a debugging aid, not part of the StudyItem pipeline itself:
-    it lets you see exactly what parse_docx.py/parse_pdf.py extracted
-    (every paragraph, its detected heading level, whether it was
-    treated as a nested sub-bullet) *before* extract_items.py's
-    Unit/Area of Study/Outcome state machine runs on top of it — the
-    place to look first when a document's item count looks wrong.
+    Inputs: path (Path); blocks (list[RawBlock]); dump_dir (Path).
+    Outputs: None (writes a file).
     """
     dump_dir.mkdir(parents=True, exist_ok=True)
     out_path = dump_dir / f"{path.stem}.json"
@@ -90,12 +72,12 @@ def _dump_blocks(path: Path, blocks: list, dump_dir: Path) -> None:
 
 
 def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = None) -> list[StudyItem]:
-    """Run the full pipeline over every supported file in `input_dir`
-    and write the combined result to `output_path` as one JSON array.
+    """Run the full pipeline over every file in input_dir and write the
+    combined result to output_path.
 
-    If `dump_blocks_dir` is given, also writes each file's raw parsed
-    blocks out as its own JSON file there (see _dump_blocks) — useful
-    for debugging a document whose extracted item count looks wrong.
+    Inputs: input_dir (Path); output_path (Path); dump_blocks_dir
+    (Path | None, optional debug dump).
+    Outputs: list[StudyItem] (also written to output_path as JSON).
     """
     overrides = _load_overrides(input_dir)
     source_files = sorted(
@@ -111,47 +93,26 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
         subject = _subject_for(path, overrides)
 
         try:
-            # Step 1: format-specific parsing -> flat, format-agnostic blocks.
             blocks = _PARSERS[path.suffix.lower()](str(path))
 
             if dump_blocks_dir is not None:
                 _dump_blocks(path, blocks, dump_blocks_dir)
 
-            # Step 2: turn those blocks into structured StudyItem rows.
             items = extract_items(blocks, subject)
 
             if not items:
-                # Extracting zero items almost always means the document's
-                # headings didn't match the patterns extract_items.py/
-                # parse_pdf.py expect (VCAA wording can differ slightly
-                # between subjects/years) — flag it loudly rather than
-                # silently shipping an empty subject.
                 print(f"  WARNING: extracted 0 items from {path.name} — check its heading structure", file=sys.stderr)
 
-            # Step 3: some files bundle several VCE studies into one
-            # document (e.g. the combined Mathematics study design covers
-            # General/Specialist/Foundation Mathematics and Mathematical
-            # Methods as four separate courses) — split those out into
-            # their real subjects before anything downstream treats them as
-            # one. No-op for ordinary single-subject files.
+            # Splits bundled multi-course files into real subjects
+            # (no-op for single-subject files).
             split_bundled_subjects(items)
 
-            # Step 4: fill in the plain-language rewrite for each item.
-            # Done here (not inside extract_items) so extract_items.py stays
-            # purely about document structure and doesn't need to know
-            # anything about simplification.
             for item in items:
                 item.plain_language_text = simplify(item.official_text)
         except Exception as e:
-            # A single corrupt/unreadable/unexpectedly-shaped source
-            # file (not a valid .docx/.pdf, permission error, a parser
-            # internal error on some unusual document structure) used
-            # to crash the *entire* build with an unhandled traceback —
-            # losing every other file's already-processed output too,
-            # since output_path is only written once at the very end.
-            # Skipping just this file and continuing is far better than
-            # that: one bad file becomes a loud warning, not a wasted
-            # run.
+            # One bad file used to crash the whole build and lose every
+            # other file's already-processed output. Skip and continue
+            # instead.
             print(f"  WARNING: failed to process {path.name} ({type(e).__name__}: {e}) — skipping this file", file=sys.stderr)
             continue
 
@@ -163,17 +124,8 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
             print(f"  {path.name} -> {subject}: {len(items)} items")
         all_items.extend(items)
 
-    # Step 5: expand bare acronyms in each item's plain-language text.
-    # VCAA documents typically define an acronym once — "relational
-    # database management systems (RDBMS)" — and then use it bare in
-    # later dot points, sometimes under a completely different Outcome.
-    # Each StudyItem is one self-contained dot point though, so a later
-    # item that only says "RDBMS" has no way to show what that means on
-    # its own. Scoped per *final* subject (after split_bundled_subjects
-    # above), and run over the combined list rather than per-file, so a
-    # definition is found regardless of which file/unit it originally
-    # appeared in. Never touches official_text, which must stay verbatim
-    # to the source.
+    # Expand bare acronyms per subject, over the combined list (so a
+    # definition is found regardless of which file/unit it came from).
     items_by_subject: dict[str, list[StudyItem]] = defaultdict(list)
     for item in all_items:
         items_by_subject[item.subject].append(item)
@@ -186,22 +138,13 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
                 item.plain_language_text, definitions
             )
 
-    # Ids are assigned last, over the *combined* list from every file —
-    # not per file — so that if two different source files ever produced
-    # items for the same subject, their ids would still number
-    # continuously rather than each file restarting from 1 and colliding.
+    # Ids over the combined list so re-running after adding a file
+    # doesn't renumber existing subjects.
     assign_ids(all_items)
 
-    # Group by subject only, and rely on Python's sort being *stable* to
-    # leave every subject's items in the natural order they were
-    # extracted in — Unit 1 -> Area of Study 1 -> Outcome 1 -> its Key
-    # Knowledge/Key Skill points -> Area of Study 2 -> ..., the same
-    # order a student reading the study design top-to-bottom would see,
-    # with Command Term glossary entries trailing at the end (they're
-    # parsed last, from the document's tables). Sorting by category too
-    # (e.g. alphabetically) would scramble that back into "all Key
-    # Knowledge, then all Key Skill" with no unit/outcome structure —
-    # exactly what the app's grouped results list needs to NOT happen.
+    # Stable sort by subject only, preserving each subject's natural
+    # reading order (Unit 1 -> its Areas -> Outcomes -> ...) — the app's
+    # grouped results list depends on this order.
     all_items.sort(key=lambda i: i.subject)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,6 +156,11 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
 
 
 def main() -> None:
+    """CLI entry point.
+
+    Inputs: command-line args (--input, --output, --dump-blocks).
+    Outputs: None (writes the output JSON via build()).
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", default="source_docs", type=Path)
     parser.add_argument("--output", default="output/study_items.json", type=Path)

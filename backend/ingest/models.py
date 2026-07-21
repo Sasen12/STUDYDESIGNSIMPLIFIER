@@ -1,32 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
 class RawBlock:
-    """One paragraph of source text, tagged with its heading level.
+    """One paragraph/line of source text with its detected heading level.
 
-    Both parse_docx.py and parse_pdf.py reduce very different source
-    formats (Word styles vs. PDF font sizes) down to this single common
-    shape, so extract_items.py only ever has to deal with one kind of
-    input no matter which file format we started from.
+    Common output shape for both parse_docx.py and parse_pdf.py, so
+    extract_items.py only deals with one input format.
 
-    level 0 = ordinary body text (a paragraph, a bullet point, ...).
-    level 1-4 = heading depth, matching how VCAA study designs are
-    nested: Unit (1) > Area of Study (2) > Outcome (3) >
-    "Key knowledge" / "Key skills" section label (4).
-    level 5 is a special case used only for glossary/table rows (see
-    parse_docx.py / parse_pdf.py) — it's not a "depth", it's a marker
-    that this block is a ready-made "Term <TAB> Definition" pair.
+    level: 0 = body text, 1-4 = heading depth (Unit/Area of Study/
+    Outcome/Key knowledge-or-skills), 5 = glossary table row.
+    is_sub_item: True for a nested sub-bullet (folded into its parent
+    item by extract_items.py instead of becoming its own StudyItem).
 
-    is_sub_item marks a nested sub-bullet (a dot point indented under
-    another dot point, e.g. "text (character, string)" / "numeric" /
-    "Boolean" all nested under a parent point like "characteristics of
-    data types, such as:"). extract_items.py folds these into their
-    parent item's text rather than giving each one its own StudyItem —
-    a bare word like "Boolean" means nothing to a student without the
-    sentence it was nested under.
+    Inputs: text (str), level (int, default 0), is_sub_item (bool,
+    default False).
+    Outputs: — (plain data holder).
     """
 
     text: str
@@ -36,13 +27,13 @@ class RawBlock:
 
 @dataclass
 class StudyItem:
-    """One row of the final dataset — mirrors lib/models/study_item.dart
-    field-for-field so the JSON this produces can be dropped straight
-    into the Flutter app without any reshaping on the Dart side.
+    """One row of the final dataset. Mirrors
+    lib/models/study_item.dart field-for-field.
 
-    is_completed always starts False here: that field is meant to track
-    a *user's* personal progress inside the app, not anything we know
-    at ingestion time, so we always ship it as an unstarted item.
+    Inputs: id/subject/title/category/official_text (str),
+    plain_language_text (str, default ""), unit/area_of_study/outcome
+    (str | None), is_completed (bool, default False).
+    Outputs: — (plain data holder; see to_json()).
     """
 
     id: str
@@ -59,10 +50,8 @@ class StudyItem:
     def to_json(self) -> dict:
         """Convert to the camelCase dict shape the Dart model expects.
 
-        Python convention is snake_case (official_text) but Dart/JSON
-        convention here is camelCase (officialText) — this is the one
-        place that translation happens, so nothing else in the pipeline
-        needs to think about naming conventions.
+        Inputs: —
+        Outputs: dict (camelCase keys, matches Dart's fromJson()).
         """
         return {
             "id": self.id,

@@ -1,61 +1,37 @@
 """Cross-item acronym expansion for plain-language text.
 
-VCAA documents define an acronym once — "relational database
-management systems (RDBMS)" — and then use the bare acronym ("RDBMS")
-in later dot points, sometimes in a completely different Outcome or
-Unit. Since each StudyItem is one self-contained dot point, a later
-item that only says "RDBMS" has no way to show a student what that
-means on its own.
-
-This module fixes that for the *plain-language* text only (never
-official_text, which must stay verbatim to the source): scan every
-item's official text for a subject to build a {ABBR: expansion} map,
-then for any item whose plain-language text uses a known acronym
-without defining it inline, insert the expansion in parentheses after
-its first occurrence.
+VCAA documents define an acronym once and use it bare later, sometimes
+in a different Outcome/Unit. Since each StudyItem is self-contained,
+this expands bare acronyms in plain_language_text only (never
+official_text) using definitions found anywhere in the subject.
 """
 from __future__ import annotations
 
 import re
 
-# Finds every "(ABBR)" — a 2-6 letter all-caps parenthetical — without
-# trying to also capture its preceding phrase in the same regex. The
-# phrase is worked out separately by _find_defining_phrase, word by
-# word, which is what avoids grabbing an over-long, wrong span of
-# preceding text (the previous character-based approach here would
-# grab up to 80 characters of preceding text regardless of word
-# boundaries, often truncating mid-word and pulling in unrelated
-# clauses — e.g. "y and secondary data and information using the
-# American Psychological Association" instead of just "American
-# Psychological Association").
+# Matches "(ABBR)" — a 2-6 letter all-caps parenthetical. The
+# defining phrase is worked out separately (word by word) rather than
+# captured in this regex, to avoid grabbing an over-long/wrong span of
+# preceding text.
 _ABBR_RE = re.compile(r"\(([A-Z]{2,6})\)")
 
 _STOPWORDS = {"of", "the", "and", "in", "for", "a", "an", "to", "on", "by", "or", "with"}
 
-# How many words to look back from an abbreviation when searching for
-# its defining phrase. Real VCAA acronym expansions are short technical
-# terms (2-6 significant words), never a whole clause.
 _MAX_PHRASE_WORDS = 6
 
 
 def _initials(words: list[str]) -> str:
+    """Inputs: words (list[str]). Outputs: str — initials of non-stopwords."""
     significant = [w for w in words if w.lower() not in _STOPWORDS]
     return "".join(w[0] for w in significant).upper()
 
 
 def _find_defining_phrase(preceding_words: list[str], abbr: str) -> str | None:
-    """Given the words immediately before an "(ABBR)", find the
-    shortest trailing run of them whose initials exactly match `abbr`
-    — e.g. for ["using", "the", "American", "Psychological",
-    "Association"] and abbr "APA", the 3-word tail "American
-    Psychological Association" has initials "APA", an exact match, so
-    that's returned (not the whole 5-word list, and not a 2-word tail
-    like "Psychological Association" -> "PA", which doesn't match).
+    """Shortest trailing run of preceding_words whose initials exactly
+    match abbr. Exact match only — no guessing on partial matches.
 
-    Requiring an *exact* match (not just "abbr is a substring of the
-    initials") is what keeps this from grabbing an unrelated, too-long,
-    or wrong preceding phrase — if nothing matches exactly, we return
-    None rather than guess.
+    Inputs: preceding_words (list[str]); abbr (str).
+    Outputs: str | None.
     """
     for word_count in range(1, min(_MAX_PHRASE_WORDS, len(preceding_words)) + 1):
         candidate = preceding_words[-word_count:]
@@ -65,11 +41,11 @@ def _find_defining_phrase(preceding_words: list[str], abbr: str) -> str | None:
 
 
 def extract_acronym_definitions(texts: list[str]) -> dict[str, str]:
-    """Scan `texts` (typically every item's official_text for one
-    subject) and return {ABBR: expansion phrase} for every acronym
-    whose defining phrase could be confidently identified (see
-    _find_defining_phrase). First definition found for a given
-    abbreviation wins if it appears more than once.
+    """Scan texts for "Full Term (ABBR)" definitions.
+
+    Inputs: texts (list[str]) — typically every item's official_text
+    for one subject.
+    Outputs: dict[str, str] — {ABBR: expansion phrase}.
     """
     definitions: dict[str, str] = {}
     for text in texts:
@@ -85,9 +61,11 @@ def extract_acronym_definitions(texts: list[str]) -> dict[str, str]:
 
 
 def expand_bare_acronyms(text: str, definitions: dict[str, str]) -> str:
-    """Insert "(expansion)" after the first standalone occurrence of any
-    acronym in `text` that's in `definitions` but isn't already defined
-    inline in this particular text.
+    """Insert "(expansion)" after the first bare use of a known
+    acronym, unless the text already defines it inline.
+
+    Inputs: text (str); definitions (dict[str, str]).
+    Outputs: str.
     """
     if not definitions:
         return text
@@ -95,7 +73,7 @@ def expand_bare_acronyms(text: str, definitions: dict[str, str]) -> str:
     result = text
     for abbr, expansion in definitions.items():
         if f"({abbr})" in result:
-            continue  # this text already defines it itself
+            continue
         match = re.search(rf"\b{re.escape(abbr)}\b", result)
         if match:
             insert_at = match.end()

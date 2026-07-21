@@ -1,19 +1,8 @@
 """Flatten a VCAA study design PDF into an ordered list of RawBlocks.
 
-PDFs are much "dumber" than Word documents: there's no concept of a
-paragraph style, just positioned characters with a font size. So this
-parser has to *infer* structure that parse_docx.py gets for free:
-
-  1. Regex patterns for the section labels VCAA study designs always
-     use ("Unit 1", "Area of Study 2", "Outcome 3", "Key knowledge",
-     "Key skills") — this is the primary, most trustworthy signal.
-  2. Font size relative to the page's most common size, as a fallback
-     for headings that don't match one of those patterns (e.g. a
-     subject-specific subheading the regexes don't know about).
-
-If extraction quality is poor on a real file, start by checking whether
-its headings actually match HEADING_PATTERNS in heading_patterns.py —
-VCAA's exact wording can vary a little between subjects and years.
+PDFs have no paragraph styles, so headings are inferred from: (1)
+regex match on known VCAA section wording (primary signal), (2) font
+size relative to the page's most common size (fallback).
 """
 from __future__ import annotations
 
@@ -26,16 +15,17 @@ from .models import RawBlock
 
 
 def parse_pdf(path: str) -> list[RawBlock]:
-    """Read a PDF file and return its text lines (in reading order) as
-    RawBlocks, followed by any table rows turned into glossary blocks.
+    """Read a PDF file into RawBlocks: every text line in reading
+    order, then glossary table rows appended at the end.
+
+    Inputs: path (str) — filesystem path to a .pdf file.
+    Outputs: list[RawBlock].
     """
     blocks: list[RawBlock] = []
 
     with pdfplumber.open(path) as pdf:
-        # We need to know the page's "body text" font size before we can
-        # decide what counts as a heading, so this has to be a two-pass
-        # process: first collect every line + its font size, tally which
-        # size is most common (that's the body size), *then* classify.
+        # Two passes: first tally font sizes to find the page's body
+        # text size, then classify each line against it.
         sizes = Counter()
         lines_with_size: list[tuple[str, float]] = []
 
@@ -44,10 +34,6 @@ def parse_pdf(path: str) -> list[RawBlock]:
                 text = line["text"].strip()
                 if not text:
                     continue
-                # A line can mix font sizes (e.g. bold run + normal run);
-                # take the largest character size on the line as
-                # representative, since headings are usually bigger, not
-                # smaller, than the surrounding body text.
                 char_sizes = [c["size"] for c in line.get("chars", []) if "size" in c]
                 size = round(max(char_sizes), 1) if char_sizes else 0
                 sizes[size] += 1
@@ -56,20 +42,16 @@ def parse_pdf(path: str) -> list[RawBlock]:
         body_size = sizes.most_common(1)[0][0] if sizes else 0
 
         for text, size in lines_with_size:
-            # Regex pattern match is authoritative when it fires. Only
-            # fall back to "bigger than body text" when no known pattern
-            # matched — this stops random large pull-quotes or footers
-            # from being misread as real structural headings.
+            # Regex match is authoritative; font size is only a
+            # fallback, to avoid misreading large pull-quotes/footers.
             level = pattern_level(text)
             if not level and size > body_size + 1:
-                level = 4  # unrecognised but visually a heading — treat as minor
+                level = 4
             blocks.append(RawBlock(text=text, level=level))
 
-        # Glossary tables (e.g. command terms) get the same level=5
-        # treatment as in parse_docx.py — see that file's comment on the
-        # table-handling pass for why tables are only skipped based on a
-        # known-bad header, not required to have a "Term | Definition"
-        # one to be included.
+        # Glossary tables: same handling as parse_docx.py — skip
+        # tables with a clearly-non-glossary header, else check every
+        # row (including the first) via looks_like_glossary_row.
         for page in pdf.pages:
             for table in page.extract_tables() or []:
                 if not table:
@@ -81,10 +63,8 @@ def parse_pdf(path: str) -> list[RawBlock]:
                     cells = [(c or "").strip() for c in row]
                     if len(cells) < 2 or not cells[0] or not cells[1]:
                         continue
-                    # See parse_docx.py's identical handling for why —
-                    # a source row can contain more than one term glued
-                    # together as newline-separated paragraphs within
-                    # one cell.
+                    # A row can contain multiple terms glued together
+                    # as newline-separated paragraphs in one cell.
                     terms = cells[0].split("\n")
                     definitions = cells[1].split("\n")
                     pairs = (

@@ -1,3 +1,5 @@
+/// One row of the study content dataset — an Outcome, Key Knowledge
+/// point, Key Skill point, or Command Term definition.
 class StudyItem {
   final String id;
   final String subject;
@@ -23,6 +25,8 @@ class StudyItem {
     this.isCompleted = false,
   });
 
+  /// Inputs: `json` — one decoded item from study_items.json.
+  /// Outputs: parsed `StudyItem`.
   factory StudyItem.fromJson(Map<String, dynamic> json) {
     return StudyItem(
       id: json['id'] as String,
