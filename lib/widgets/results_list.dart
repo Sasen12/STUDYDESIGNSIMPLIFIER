@@ -27,6 +27,47 @@ class ResultsList extends StatelessWidget {
     required this.generation,
   });
 
+  /// Precomputes which header/item goes in each list row, without
+  /// building any widgets yet — cheap (string comparisons over
+  /// `items`), unlike constructing an `_ItemCard`'s widget tree. Kept
+  /// separate from the widget itself so `ListView.builder` below can
+  /// build only the rows actually near the viewport, instead of the
+  /// old plain `ListView` eagerly building every card up front — for
+  /// an 800+ item subject (e.g. Mathematics) that's the difference
+  /// between constructing a handful of widgets and constructing all of
+  /// them before the first frame.
+  List<_Row> _buildRows() {
+    final rows = <_Row>[];
+    String? lastUnit;
+    String? lastAreaOfStudy;
+    var glossaryHeaderShown = false;
+
+    for (final item in items) {
+      if (item.unit == null) {
+        // Command Term glossary entries aren't scoped to a unit — group
+        // them under one trailing header instead of a Unit/Area one.
+        if (!glossaryHeaderShown) {
+          rows.add(const _HeaderRow('Glossary of Command Terms'));
+          glossaryHeaderShown = true;
+        }
+      } else {
+        if (item.unit != lastUnit) {
+          rows.add(_HeaderRow(item.unit!));
+          lastUnit = item.unit;
+          lastAreaOfStudy = null; // force the area header to re-show too
+        }
+        if (item.areaOfStudy != lastAreaOfStudy) {
+          lastAreaOfStudy = item.areaOfStudy;
+          if (item.areaOfStudy != null) {
+            rows.add(_HeaderRow(item.areaOfStudy!, isSubHeader: true));
+          }
+        }
+      }
+      rows.add(_ItemRow(item));
+    }
+    return rows;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
@@ -38,47 +79,41 @@ class ResultsList extends StatelessWidget {
       );
     }
 
-    final children = <Widget>[];
-    String? lastUnit;
-    String? lastAreaOfStudy;
-    var glossaryHeaderShown = false;
+    final rows = _buildRows();
 
-    for (final item in items) {
-      if (item.unit == null) {
-        // Command Term glossary entries aren't scoped to a unit — group
-        // them under one trailing header instead of a Unit/Area one.
-        if (!glossaryHeaderShown) {
-          children.add(const _GroupHeader('Glossary of Command Terms'));
-          glossaryHeaderShown = true;
-        }
-      } else {
-        if (item.unit != lastUnit) {
-          children.add(_GroupHeader(item.unit!));
-          lastUnit = item.unit;
-          lastAreaOfStudy = null; // force the area header to re-show too
-        }
-        if (item.areaOfStudy != lastAreaOfStudy) {
-          lastAreaOfStudy = item.areaOfStudy;
-          if (item.areaOfStudy != null) {
-            children.add(_SubGroupHeader(item.areaOfStudy!));
-          }
-        }
-      }
-      children.add(
-        _ItemCard(
-          item: item,
-          isSelected: item.id == selectedItem?.id,
-          onTap: () => onItemSelected(item),
-        ),
-      );
-    }
-
-    return ListView(
+    return ListView.builder(
       key: ValueKey(generation),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      children: children,
+      itemCount: rows.length,
+      itemBuilder: (context, index) {
+        final row = rows[index];
+        return switch (row) {
+          _HeaderRow(:final text, :final isSubHeader) =>
+            isSubHeader ? _SubGroupHeader(text) : _GroupHeader(text),
+          _ItemRow(:final item) => _ItemCard(
+            item: item,
+            isSelected: item.id == selectedItem?.id,
+            onTap: () => onItemSelected(item),
+          ),
+        };
+      },
     );
   }
+}
+
+sealed class _Row {
+  const _Row();
+}
+
+class _HeaderRow extends _Row {
+  final String text;
+  final bool isSubHeader;
+  const _HeaderRow(this.text, {this.isSubHeader = false});
+}
+
+class _ItemRow extends _Row {
+  final StudyItem item;
+  const _ItemRow(this.item);
 }
 
 class _GroupHeader extends StatelessWidget {

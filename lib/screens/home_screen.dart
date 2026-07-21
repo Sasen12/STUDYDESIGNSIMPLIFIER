@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/study_item.dart';
 import '../data/study_data_repository.dart';
@@ -39,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   final _repository = StudyDataRepository();
   final _preferences = PreferencesRepository();
+  Timer? _searchDebounce;
 
   bool _loading = true;
   String? _loadError;
@@ -105,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -161,8 +165,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _applyFilters();
   }
 
+  // Re-filtering re-scans every item's title/official/plain-language text
+  // against the query, which is wasted work for keystrokes that are about
+  // to be superseded by the next one — debouncing so it only runs once
+  // typing pauses keeps fast typers from feeling the list stutter.
   void _onSearchChanged(String query) {
-    _applyFilters();
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 200), _applyFilters);
   }
 
   void _onItemSelected(StudyItem item) {
@@ -377,6 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             const SizedBox(width: 8),
                                             GestureDetector(
                                               onTap: () {
+                                                _searchDebounce?.cancel();
                                                 _searchController.clear();
                                                 _applyFilters();
                                               },
