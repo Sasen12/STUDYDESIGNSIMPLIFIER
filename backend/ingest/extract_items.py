@@ -210,6 +210,35 @@ def split_bundled_subjects(items: list[StudyItem]) -> None:
         if match and match.group(1).strip() in bundled_course_names:
             item.subject = match.group(1).strip().title()
 
+    # Command Term rows have unit=None (see add_item), so the
+    # unit-based reassignment above never touches them — they'd stay
+    # under whichever subject happened to be the file's default even
+    # though a bundled file's one glossary table is shared reference
+    # material for every course split out of it. Re-home the originals
+    # under one derived subject and copy them to the rest, so Command
+    # Term filtering works no matter which split subject is selected.
+    glossary_items = [item for item in items if item.category == "Command Term"]
+    if glossary_items:
+        derived_subjects = sorted(name.title() for name in bundled_course_names)
+        primary_subject, *other_subjects = derived_subjects
+        for item in glossary_items:
+            item.subject = primary_subject
+        for subject in other_subjects:
+            for item in glossary_items:
+                items.append(
+                    StudyItem(
+                        id="",
+                        subject=subject,
+                        title=item.title,
+                        category=item.category,
+                        official_text=item.official_text,
+                        plain_language_text=item.plain_language_text,
+                        unit=None,
+                        area_of_study=None,
+                        outcome=None,
+                    )
+                )
+
 
 def assign_ids(items: list[StudyItem]) -> None:
     """Fill in each item's id from its final subject. Call after

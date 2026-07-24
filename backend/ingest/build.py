@@ -86,8 +86,7 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
 
     if not source_files:
         print(f"No .docx/.pdf files found in {input_dir}", file=sys.stderr)
-        return []
-
+        return  [] 
     all_items: list[StudyItem] = []
     for path in source_files:
         subject = _subject_for(path, overrides)
