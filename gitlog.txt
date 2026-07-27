@@ -1,0 +1,17 @@
+24/07/26 14:07 | General Fixes
+21/07/26 21:18 | Lazy-build results list and debounce search for smoother scrolling/typing
+21/07/26 10:06 | Trim internal comments to lean Inputs/Outputs summaries, update READMEs
+20/07/26 19:41 | Fix Command Term glossary false-positives and a merged-row data bug
+20/07/26 19:27 | Fix 4 review findings: TF-IDF crash guard, areaOfStudy corruption, orphaned sub-items, and per-file build crashes
+20/07/26 18:02 | Replace regex clause-splitting with spaCy dependency-parse-based logic
+20/07/26 14:14 | Add phrase-level jargon substitution + explicit note for identical text
+20/07/26 14:07 | Add local persistence, fix card headline truncation, macOS-inspired redesign
+20/07/26 11:55 | Improve simplifier: cross-item acronym expansion + curated jargon additions
+20/07/26 11:28 | Revert hiding the Plain Language box when it matches Official Text
+20/07/26 11:23 | Fix detail panel not filling height, hide duplicate plain-language box
+20/07/26 11:18 | Add category color accents to fix flat "grey bar" card look
+20/07/26 10:38 | Fix list-card formatting and add purposeful UI animations + loading screen
+20/07/26 10:28 | Wire real study design data into the app and fix pipeline data quality
+20/07/26 09:19 | Add offline ingestion pipeline: study design docs -> simplified JSON
+20/07/26 09:05 | README
+20/07/26 09:02 | Initial commit: VCE Study Design Simplifier (Flutter)
