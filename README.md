@@ -5,35 +5,43 @@ searchable, plain-language browser: pick a subject, filter by
 outcome/key knowledge/key skill/command term, see official wording next
 to a plain-language rewrite.
 
-Two parts:
+Two parts, connected only by a generated JSON file — the backend never
+runs at app runtime:
 
 - **`backend/`** — offline Python pipeline. Converts source
   `.docx`/`.pdf` study design files into `study_items.json`. Run
-  manually, not at app runtime. See [backend/README.md](backend/README.md).
+  manually. See [backend/README.md](backend/README.md).
 - **`lib/`** — Flutter app. Reads the bundled `study_items.json` at
-  startup; never talks to the backend.
+  startup.
 
-## Backend pipeline
+## Architecture
 
+```mermaid
+flowchart LR
+    subgraph Backend["backend/  (offline, run manually)"]
+        direction TB
+        A["source_docs/\n*.docx / *.pdf"] --> B["parse_docx.py\nparse_pdf.py"]
+        B -->|"RawBlock list\n(text + heading level)"| C["extract_items.py"]
+        C -->|"StudyItem list\n(Outcome / Key Knowledge /\nKey Skill / Command Term)"| D["simplify.py"]
+        D -->|"+ plain_language_text\n(TF-IDF + jargon sub +\nspaCy clause split)"| E["acronyms.py"]
+        E -->|"+ expanded acronyms"| F["build.py"]
+    end
+
+    F --> G[("output/\nstudy_items.json")]
+    G -->|"cp (manual step)"| H[("assets/data/\nstudy_items.json")]
+
+    subgraph App["lib/  (Flutter app)"]
+        direction TB
+        H --> I["StudyDataRepository\n+ PreferencesRepository"]
+        I --> J["HomeScreen\n(filter/search state)"]
+        J --> K["Sidebar · ResultsList\nDetailPanel"]
+    end
 ```
-source .docx/.pdf
-  -> parse_docx.py / parse_pdf.py   (-> RawBlock list: text + heading level)
-  -> extract_items.py               (-> StudyItem list: Outcome/Key Knowledge/
-                                        Key Skill/Command Term, state-machine
-                                        walk of Unit -> Area of Study -> Outcome)
-  -> simplify.py                    (official_text -> plain_language_text:
-                                        TF-IDF extractive summarisation +
-                                        jargon/phrase substitution +
-                                        spaCy dependency-parse clause splitting)
-  -> acronyms.py                    (expands bare acronyms using definitions
-                                        found elsewhere in the same subject)
-  -> build.py                       (-> output/study_items.json)
-```
 
-No LLM, no API calls — scikit-learn (TF-IDF/cosine similarity) and
-spaCy (`en_core_web_sm`, a small statistical parser) only. Full
-explanation of each stage, known limitations, and fixed bugs is in
-[backend/README.md](backend/README.md).
+No LLM, no API calls anywhere in the backend — scikit-learn
+(TF-IDF/cosine similarity) and spaCy (`en_core_web_sm`, a small
+statistical parser) only. Full explanation of each stage, known
+limitations, and fixed bugs is in [backend/README.md](backend/README.md).
 
 To refresh the dataset after adding/updating source files:
 
