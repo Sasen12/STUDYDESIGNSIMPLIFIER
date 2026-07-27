@@ -20,6 +20,11 @@ String? get _systemFontFamily {
   }
 }
 
+// Dart has no `public`/`private`/`protected` keywords — its access
+// modifier is a naming convention: a leading underscore makes a
+// member private to its own library (file). `_isDark`/`_preferences`
+// below are private; `isDark` is deliberately exposed read-only
+// through a getter, with `toggleTheme()` as the only way to change it.
 class ThemeModel extends ChangeNotifier {
   final PreferencesRepository _preferences;
 

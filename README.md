@@ -111,6 +111,17 @@ backend/
 └── output/study_items.json          # Pipeline output
 ```
 
+## Language notes
+
+Dart has no `public`/`private`/`protected` keywords. Its access
+modifier is a naming convention: a leading underscore (`_isDark`,
+`_HomeScreenState`, `_applyFilters`) makes a member private to its own
+library (file); everything else is public by default. Used
+consistently throughout `lib/` — see
+[theme_model.dart](lib/theme/theme_model.dart) for a concrete example
+(private `_isDark` field, exposed only via a read-only `isDark` getter
+and a `toggleTheme()` method).
+
 ## Current state
 
 - Dataset: 2,267 items across 12 subjects (Applied Computing, Business

@@ -13,6 +13,9 @@ class PreferencesRepository {
   static const _completedIdsKey = 'completed_item_ids';
   static const _darkModeKey = 'dark_mode';
 
+  // Set<String>, not List<String>: completion is a membership question
+  // ("is this id done?"), never order or duplicates, and callers check
+  // membership per item every filter/render pass — O(1) vs O(n).
   Future<Set<String>> loadCompletedIds() async {
     final prefs = await SharedPreferences.getInstance();
     return (prefs.getStringList(_completedIdsKey) ?? const []).toSet();

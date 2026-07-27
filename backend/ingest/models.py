@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# @dataclass over a plain class or dict: both types below are pure data
+# (no behaviour beyond to_json()), and a dataclass gets typed fields,
+# an auto-generated __init__, and IDE/mypy field-name checking for free
+# — a dict would accept any typo'd key silently.
+
 
 @dataclass
 class RawBlock:

@@ -7,6 +7,11 @@ class StudyItem {
   final String category;
   final String officialText;
   final String plainLanguageText;
+  // Nullable, not "" as a sentinel: Command Term entries genuinely have
+  // no unit/area/outcome (they're glossary reference material, not
+  // scoped to a unit — see extract_items.py), so null lets the UI and
+  // grouping logic ask "does this item have a unit?" directly instead
+  // of comparing against a magic empty string.
   final String? unit;
   final String? areaOfStudy;
   final String? outcome;

@@ -101,6 +101,12 @@ class ResultsList extends StatelessWidget {
   }
 }
 
+// A sealed class + subtypes here, rather than two parallel lists (one
+// of header strings, one of items) or a single List<Object> with
+// runtime `is` checks: `itemBuilder` needs to build a different widget
+// per row, and a sealed type lets the switch below be checked
+// exhaustively at compile time — a new _Row subtype that itemBuilder
+// forgets to handle is a compile error, not a bug found at runtime.
 sealed class _Row {
   const _Row();
 }
