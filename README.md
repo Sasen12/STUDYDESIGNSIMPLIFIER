@@ -18,25 +18,36 @@ runs at app runtime:
 
 ```mermaid
 flowchart LR
-    subgraph Backend["backend/  (offline, run manually)"]
-        direction TB
-        A["source_docs/\n*.docx / *.pdf"] --> B["parse_docx.py\nparse_pdf.py"]
-        B -->|"RawBlock list\n(text + heading level)"| C["extract_items.py"]
-        C -->|"StudyItem list\n(Outcome / Key Knowledge /\nKey Skill / Command Term)"| D["simplify.py"]
-        D -->|"+ plain_language_text\n(TF-IDF + jargon sub +\nspaCy clause split)"| E["acronyms.py"]
-        E -->|"+ expanded acronyms"| F["build.py"]
+    subgraph BE["backend/ — Python pipeline (offline, run manually)"]
+        P["parse → extract → simplify → acronyms → build"]
     end
 
-    F --> G[("output/\nstudy_items.json")]
-    G -->|"cp (manual step)"| H[("assets/data/\nstudy_items.json")]
+    J[("study_items.json")]
 
-    subgraph App["lib/  (Flutter app)"]
+    subgraph FE["lib/ — Flutter app"]
         direction TB
-        H --> I["StudyDataRepository\n+ PreferencesRepository"]
-        I --> J["HomeScreen\n(filter/search state)"]
-        J --> K["Sidebar · ResultsList\nDetailPanel"]
+        R["Data layer\nStudyDataRepository · PreferencesRepository"]
+        S["State layer\nHomeScreen"]
+        U["UI layer\nSidebar · ResultsList · DetailPanel"]
+        R --> S --> U
     end
+
+    BE -- "writes" --> J
+    J -- "copied in by hand,\nread once at app startup" --> FE
 ```
+
+The two sides never talk to each other directly — `study_items.json` is
+the entire interface. The backend doesn't run when the app runs, and
+the app has no code path back into the backend.
+
+Inside the backend pipeline (`P` above):
+
+1. `parse_docx.py` / `parse_pdf.py` — source file → `RawBlock` list (text + heading level).
+2. `extract_items.py` — `RawBlock` list → `StudyItem` list (Outcome / Key Knowledge / Key Skill / Command Term).
+3. `simplify.py` — fills in `plain_language_text` (TF-IDF extraction + jargon substitution + spaCy clause splitting).
+4. `acronyms.py` — expands bare acronyms using definitions found elsewhere in the same subject.
+5. `build.py` — writes the combined result to `output/study_items.json`.
+6. Copy that file over `assets/data/study_items.json` (manual step) and the Flutter app picks it up at next launch.
 
 No LLM, no API calls anywhere in the backend — scikit-learn
 (TF-IDF/cosine similarity) and spaCy (`en_core_web_sm`, a small
