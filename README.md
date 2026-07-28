@@ -18,29 +18,32 @@ runs at app runtime:
 
 ```mermaid
 flowchart LR
-    subgraph BE["backend/ — Python pipeline (offline, run manually)"]
-        P["parse → extract → simplify → acronyms → build"]
+    subgraph Source["Source"]
+        A["Study design files\n(.docx / .pdf)"]
     end
 
-    J[("study_items.json")]
-
-    subgraph FE["lib/ — Flutter app"]
-        direction TB
-        R["Data layer\nStudyDataRepository · PreferencesRepository"]
-        S["State layer\nHomeScreen"]
-        U["UI layer\nSidebar · ResultsList · DetailPanel"]
-        R --> S --> U
+    subgraph Backend["Backend  (Python, offline)"]
+        B["Ingestion pipeline\nbackend/ingest/"]
     end
 
-    BE -- "writes" --> J
-    J -- "copied in by hand,\nread once at app startup" --> FE
+    subgraph Contract["Data contract"]
+        C["study_items.json"]
+    end
+
+    subgraph Frontend["Frontend  (Flutter app)"]
+        D["Data layer\nRepositories"]
+        E["UI layer\nScreens & widgets"]
+    end
+
+    A --> B --> C --> D --> E
 ```
 
 The two sides never talk to each other directly — `study_items.json` is
 the entire interface. The backend doesn't run when the app runs, and
-the app has no code path back into the backend.
+the app has no code path back into the backend; it only ever reads
+that one file, once, at startup.
 
-Inside the backend pipeline (`P` above):
+Inside the backend pipeline:
 
 1. `parse_docx.py` / `parse_pdf.py` — source file → `RawBlock` list (text + heading level).
 2. `extract_items.py` — `RawBlock` list → `StudyItem` list (Outcome / Key Knowledge / Key Skill / Command Term).
