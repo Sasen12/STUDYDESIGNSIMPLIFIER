@@ -18,24 +18,37 @@ runs at app runtime:
 
 ```mermaid
 flowchart LR
-    subgraph Source["Source"]
-        A["Study design files\n(.docx / .pdf)"]
+    A[("VCAA study design files<br/>.docx / .pdf")]
+
+    subgraph BE["BACKEND — Python, run offline"]
+        direction TB
+        B["Parsing<br/>parse_docx.py · parse_pdf.py"]
+        C["Extraction<br/>extract_items.py"]
+        D["Simplification<br/>simplify.py · acronyms.py"]
+        B --> C --> D
     end
 
-    subgraph Backend["Backend  (Python, offline)"]
-        B["Ingestion pipeline\nbackend/ingest/"]
+    E[("study_items.json")]
+
+    subgraph FE["FRONTEND — Flutter app"]
+        direction TB
+        F["Data layer<br/>StudyDataRepository · PreferencesRepository"]
+        G["State layer<br/>HomeScreen"]
+        H["UI layer<br/>Sidebar · ResultsList · DetailPanel"]
+        F --> G --> H
     end
 
-    subgraph Contract["Data contract"]
-        C["study_items.json"]
-    end
+    A --> B
+    D --> E
+    E --> F
 
-    subgraph Frontend["Frontend  (Flutter app)"]
-        D["Data layer\nRepositories"]
-        E["UI layer\nScreens & widgets"]
-    end
-
-    A --> B --> C --> D --> E
+    classDef store fill:#fff,stroke:#333,stroke-width:2px,color:#000
+    classDef tier fill:#f7f7f7,stroke:#666,stroke-width:1px,color:#000
+    class A,E store
+    class B,C,D,F,G,H tier
+    style BE fill:#fff,stroke:#999,stroke-width:1px,stroke-dasharray: 4 4,color:#000
+    style FE fill:#fff,stroke:#999,stroke-width:1px,stroke-dasharray: 4 4,color:#000
+    linkStyle default stroke:#555,stroke-width:1.5px
 ```
 
 The two sides never talk to each other directly — `study_items.json` is
