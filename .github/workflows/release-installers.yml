@@ -35,7 +35,7 @@ jobs:
 
       - name: Build Windows installer
         shell: powershell
-        run: '& "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" packaging/windows/vce_study_tracker.iss'
+        run: '& "$env:ProgramFiles\Inno Setup 6\ISCC.exe" packaging/windows/vce_study_tracker.iss'
 
       - name: Upload Windows installer to release
         uses: softprops/action-gh-release@v2
