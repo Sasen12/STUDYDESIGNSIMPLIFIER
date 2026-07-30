@@ -18,6 +18,7 @@ class ResultsList extends StatelessWidget {
   final StudyItem? selectedItem;
   final ValueChanged<StudyItem> onItemSelected;
   final int generation;
+  final String emptyMessage;
 
   const ResultsList({
     super.key,
@@ -25,6 +26,7 @@ class ResultsList extends StatelessWidget {
     required this.selectedItem,
     required this.onItemSelected,
     required this.generation,
+    required this.emptyMessage,
   });
 
   /// Precomputes which header/item goes in each list row, without
@@ -73,7 +75,7 @@ class ResultsList extends StatelessWidget {
     if (items.isEmpty) {
       return Center(
         child: Text(
-          'No results found',
+          emptyMessage,
           style: TextStyle(fontSize: 13, color: context.textSecondary),
         ),
       );

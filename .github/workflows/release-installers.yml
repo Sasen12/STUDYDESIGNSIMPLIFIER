@@ -1,0 +1,86 @@
+name: Build and publish installers
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Windows release
+        run: |
+          flutter pub get
+          flutter build windows --release
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Windows installer
+        shell: powershell
+        run: '& "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" packaging/windows/vce_study_tracker.iss'
+
+      - name: Upload Windows installer to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: packaging/windows/output/VCEStudyTrackerSetup.exe
+
+  macos:
+    name: macOS DMG
+    runs-on: macos-14
+
+    steps:
+      - name: Check out release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build macOS release
+        run: |
+          flutter pub get
+          flutter build macos --release
+
+      - name: Create DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="build/macos/Build/Products/Release/vce_study_tracker.app"
+          staging="$(mktemp -d)"
+          cp -R "$app_path" "$staging/VCE Study Tracker.app"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create \
+            -volname "VCE Study Tracker" \
+            -srcfolder "$staging" \
+            -ov \
+            -format UDZO \
+            "VCEStudyTracker.dmg"
+
+      - name: Upload macOS DMG to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: VCEStudyTracker.dmg

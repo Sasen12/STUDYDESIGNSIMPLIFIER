@@ -1,0 +1,37 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Windows release
+        run: |
+          flutter pub get
+          flutter build windows --release
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build installer
+        shell: powershell
+        run: '& "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" packaging/windows/vce_study_tracker.iss'
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: VCEStudyTracker-Windows-Installer
+          path: packaging/windows/output/VCEStudyTrackerSetup.exe

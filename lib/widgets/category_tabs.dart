@@ -82,38 +82,45 @@ class CategoryTabs extends StatelessWidget {
                   children:
                       categories.map((category) {
                         final isSelected = category == selectedCategory;
-                        return SizedBox(
-                          width: segmentWidth,
-                          child: GestureDetector(
-                            onTap: () => onCategorySelected(category),
-                            behavior: HitTestBehavior.opaque,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              // "Command Term" is long enough to
-                              // overflow a narrow segment at some panel
-                              // widths — FittedBox scales the label
-                              // down to fit instead, which reads better
-                              // than an ellipsis on a 1-2 word label.
-                              child: Center(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 150),
-                                    curve: Curves.easeOut,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight:
-                                          isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                      color:
-                                          isSelected
-                                              ? context.textPrimary
-                                              : context.textSecondary,
+                        return Semantics(
+                          button: true,
+                          selected: isSelected,
+                          label: 'Filter by $category',
+                          child: SizedBox(
+                            width: segmentWidth,
+                            child: GestureDetector(
+                              onTap: () => onCategorySelected(category),
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                // "Command Term" is long enough to
+                                // overflow a narrow segment at some panel
+                                // widths — FittedBox scales the label
+                                // down to fit instead, which reads better
+                                // than an ellipsis on a 1-2 word label.
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration: const Duration(
+                                        milliseconds: 150,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                        color:
+                                            isSelected
+                                                ? context.textPrimary
+                                                : context.textSecondary,
+                                      ),
+                                      child: Text(category, maxLines: 1),
                                     ),
-                                    child: Text(category, maxLines: 1),
                                   ),
                                 ),
                               ),

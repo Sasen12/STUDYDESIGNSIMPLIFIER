@@ -29,6 +29,21 @@ class SearchBarWidget extends StatelessWidget {
           filled: true,
           fillColor: context.surfaceBg,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          suffixIcon:
+              controller.text.isEmpty
+                  ? null
+                  : IconButton(
+                    tooltip: 'Clear search',
+                    onPressed: () {
+                      controller.clear();
+                      onChanged('');
+                    },
+                    icon: Icon(
+                      Icons.close,
+                      size: 15,
+                      color: context.textSecondary,
+                    ),
+                  ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,

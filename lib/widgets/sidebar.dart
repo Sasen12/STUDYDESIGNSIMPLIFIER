@@ -30,40 +30,46 @@ class Sidebar extends StatelessWidget {
             final isSelected = subject == selectedSubject;
             return Padding(
               padding: const EdgeInsets.only(bottom: 2),
-              child: GestureDetector(
-                onTap: () => onSubjectSelected(subject),
-                // macOS sidebars (Finder, Mail, System Settings) mark
-                // the active row with a solid accent-tinted capsule
-                // inset from the edges, not a full-bleed highlight or
-                // a border stripe — that's the specific detail that
-                // reads as "native Mac" rather than a generic list.
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? const Color(0xFF007AFF).withValues(alpha: 0.14)
-                            : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: AnimatedDefaultTextStyle(
+              child: Semantics(
+                button: true,
+                selected: isSelected,
+                label: 'Subject: $subject',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: () => onSubjectSelected(subject),
+                  // macOS sidebars (Finder, Mail, System Settings) mark
+                  // the active row with a solid accent-tinted capsule
+                  // inset from the edges, not a full-bleed highlight or
+                  // a border stripe — that's the specific detail that
+                  // reads as "native Mac" rather than a generic list.
+                  child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     curve: Curves.easeOut,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
                       color:
                           isSelected
-                              ? const Color(0xFF007AFF)
-                              : context.textSecondary,
+                              ? const Color(0xFF007AFF).withValues(alpha: 0.14)
+                              : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(subject),
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOut,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color:
+                            isSelected
+                                ? const Color(0xFF007AFF)
+                                : context.textSecondary,
+                      ),
+                      child: Text(subject),
+                    ),
                   ),
                 ),
               ),

@@ -195,6 +195,16 @@ class _HomeScreenState extends State<HomeScreen> {
     SettingsSlideout.show(context, widget.themeModel);
   }
 
+  String get _emptyMessage {
+    if (_searchController.text.isNotEmpty) {
+      return 'No matches for “${_searchController.text}”';
+    }
+    if (_selectedCategory != null && _selectedCategory != 'All') {
+      return 'No $_selectedCategory items in $_selectedSubject';
+    }
+    return 'No study items available for $_selectedSubject';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,23 +260,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     '$_completedCount / ${_items.length}',
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _openSettings,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: context.statsBg,
+                  Semantics(
+                    button: true,
+                    label: 'Settings',
+                    child: Tooltip(
+                      message: 'Settings',
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: context.borderStrong,
-                          width: 0.5,
+                        onTap: _openSettings,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: context.statsBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: context.borderStrong,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.settings,
+                            size: 16,
+                            color: context.textSecondary,
+                          ),
                         ),
-                      ),
-                      child: Icon(
-                        Icons.settings,
-                        size: 16,
-                        color: context.textSecondary,
                       ),
                     ),
                   ),
@@ -291,130 +309,157 @@ class _HomeScreenState extends State<HomeScreen> {
                         : _loadError != null
                         ? Center(
                           key: const ValueKey('error'),
-                          child: Text(
-                            'Could not load study data:\n$_loadError',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: context.textSecondary),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Could not load study content.',
+                                style: TextStyle(color: context.textPrimary),
+                              ),
+                              const SizedBox(height: 12),
+                              FilledButton.tonal(
+                                onPressed: () {
+                                  setState(() {
+                                    _loading = true;
+                                    _loadError = null;
+                                  });
+                                  _loadItems();
+                                },
+                                child: const Text('Try again'),
+                              ),
+                            ],
                           ),
                         )
-                        : Row(
-                          key: const ValueKey('content'),
-                          // Without this, the detail panel — which has
-                          // no Expanded/flex child of its own to force
-                          // it to fill height, unlike the center list
-                          // column — shrink-wraps to its content height
-                          // and sits centered in the Row's cross axis,
-                          // leaving grey gaps above and below it.
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Sidebar(
-                              subjects: _subjects,
-                              selectedSubject: _selectedSubject,
-                              onSubjectSelected: _onSubjectSelected,
-                            ),
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: context.cardBg,
-                                  border: Border(
-                                    right: BorderSide(
-                                      color: context.borderStrong,
-                                      width: 0.5,
+                        : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final showSidebar = constraints.maxWidth >= 700;
+                            final showDetails = constraints.maxWidth >= 980;
+                            return Row(
+                              key: const ValueKey('content'),
+                              // Without this, the detail panel — which has
+                              // no Expanded/flex child of its own to force
+                              // it to fill height, unlike the center list
+                              // column — shrink-wraps to its content height
+                              // and sits centered in the Row's cross axis,
+                              // leaving grey gaps above and below it.
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (showSidebar)
+                                  Sidebar(
+                                    subjects: _subjects,
+                                    selectedSubject: _selectedSubject,
+                                    onSubjectSelected: _onSubjectSelected,
+                                  ),
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: context.cardBg,
+                                      border: Border(
+                                        right: BorderSide(
+                                          color: context.borderStrong,
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        SearchBarWidget(
+                                          controller: _searchController,
+                                          onChanged: _onSearchChanged,
+                                        ),
+                                        CategoryTabs(
+                                          categories: _categories,
+                                          selectedCategory: _selectedCategory,
+                                          onCategorySelected:
+                                              _onCategorySelected,
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          child: Divider(
+                                            height: 1,
+                                            color: context.border,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: ResultsList(
+                                            items: _filteredItems,
+                                            selectedItem: _selectedItem,
+                                            onItemSelected: _onItemSelected,
+                                            generation: _filterGeneration,
+                                            emptyMessage: _emptyMessage,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: context.cardBg,
+                                            border: Border(
+                                              top: BorderSide(
+                                                color: context.border,
+                                                width: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.search,
+                                                size: 12,
+                                                color: context.textSecondary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: context.textSecondary,
+                                                ),
+                                              ),
+                                              if (_searchController
+                                                  .text
+                                                  .isNotEmpty) ...[
+                                                const SizedBox(width: 8),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    _searchDebounce?.cancel();
+                                                    _searchController.clear();
+                                                    _applyFilters();
+                                                  },
+                                                  child: Text(
+                                                    'Clear',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color:
+                                                          context.textPrimary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                                child: Column(
-                                  children: [
-                                    SearchBarWidget(
-                                      controller: _searchController,
-                                      onChanged: _onSearchChanged,
+                                if (showDetails)
+                                  SizedBox(
+                                    width: constraints.maxWidth * 0.35,
+                                    child: DetailPanel(
+                                      item: _selectedItem,
+                                      onCompletionChanged: _onCompletionChanged,
                                     ),
-                                    CategoryTabs(
-                                      categories: _categories,
-                                      selectedCategory: _selectedCategory,
-                                      onCategorySelected: _onCategorySelected,
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: Divider(
-                                        height: 1,
-                                        color: context.border,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: ResultsList(
-                                        items: _filteredItems,
-                                        selectedItem: _selectedItem,
-                                        onItemSelected: _onItemSelected,
-                                        generation: _filterGeneration,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: context.cardBg,
-                                        border: Border(
-                                          top: BorderSide(
-                                            color: context.border,
-                                            width: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.search,
-                                            size: 12,
-                                            color: context.textSecondary,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: context.textSecondary,
-                                            ),
-                                          ),
-                                          if (_searchController
-                                              .text
-                                              .isNotEmpty) ...[
-                                            const SizedBox(width: 8),
-                                            GestureDetector(
-                                              onTap: () {
-                                                _searchDebounce?.cancel();
-                                                _searchController.clear();
-                                                _applyFilters();
-                                              },
-                                              child: Text(
-                                                'Clear',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: context.textPrimary,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.35,
-                              child: DetailPanel(
-                                item: _selectedItem,
-                                onCompletionChanged: _onCompletionChanged,
-                              ),
-                            ),
-                          ],
+                                  ),
+                              ],
+                            );
+                          },
                         ),
               ),
             ),
