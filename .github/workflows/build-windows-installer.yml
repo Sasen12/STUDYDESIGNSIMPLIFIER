@@ -28,7 +28,10 @@ jobs:
 
       - name: Build installer
         shell: powershell
-        run: '& "$env:ProgramFiles\Inno Setup 6\ISCC.exe" packaging/windows/vce_study_tracker.iss'
+        run: |
+          $iscc = Get-ChildItem -Path 'C:\Program Files', 'C:\Program Files (x86)', 'C:\ProgramData\chocolatey' -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw 'Could not find ISCC.exe after installing Inno Setup.' }
+          & $iscc.FullName packaging/windows/vce_study_tracker.iss
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
