@@ -38,6 +38,7 @@ dependencies:
   # Local key-value persistence — used to remember completion status
   # and the dark mode preference across app restarts.
   shared_preferences: ^2.3.2
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:

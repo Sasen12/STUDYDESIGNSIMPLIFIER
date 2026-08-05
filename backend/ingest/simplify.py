@@ -18,6 +18,13 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Vendored english punkt_tab so sentence tokenization is hermetic — no
+# network download needed even in a fresh CI environment. Falls back to
+# the normal nltk.data.path search when the checkout isn't present.
+_VENDORED_NLTK_DATA = Path(__file__).resolve().parents[1] / "nltk_data"
+if _VENDORED_NLTK_DATA.is_dir():
+    nltk.data.path.insert(0, str(_VENDORED_NLTK_DATA))
+
 _nlp: spacy.language.Language | None = None
 
 

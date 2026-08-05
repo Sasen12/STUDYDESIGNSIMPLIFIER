@@ -1,0 +1,2 @@
+FROM batiai/qwen3.5-9b:q4
+PARAMETER num_ctx 32768

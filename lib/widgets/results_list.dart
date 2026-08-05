@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../logic/study_grouping.dart';
 import '../models/study_item.dart';
 import '../theme/app_colors.dart';
 import '../theme/category_colors.dart';
@@ -29,47 +30,13 @@ class ResultsList extends StatelessWidget {
     required this.emptyMessage,
   });
 
-  /// Precomputes which header/item goes in each list row, without
-  /// building any widgets yet — cheap (string comparisons over
-  /// `items`), unlike constructing an `_ItemCard`'s widget tree. Kept
-  /// separate from the widget itself so `ListView.builder` below can
-  /// build only the rows actually near the viewport, instead of the
-  /// old plain `ListView` eagerly building every card up front — for
-  /// an 800+ item subject (e.g. Mathematics) that's the difference
-  /// between constructing a handful of widgets and constructing all of
-  /// them before the first frame.
-  List<_Row> _buildRows() {
-    final rows = <_Row>[];
-    String? lastUnit;
-    String? lastAreaOfStudy;
-    var glossaryHeaderShown = false;
-
-    for (final item in items) {
-      if (item.unit == null) {
-        // Command Term glossary entries aren't scoped to a unit — group
-        // them under one trailing header instead of a Unit/Area one.
-        if (!glossaryHeaderShown) {
-          rows.add(const _HeaderRow('Glossary of Command Terms'));
-          glossaryHeaderShown = true;
-        }
-      } else {
-        if (item.unit != lastUnit) {
-          rows.add(_HeaderRow(item.unit!));
-          lastUnit = item.unit;
-          lastAreaOfStudy = null; // force the area header to re-show too
-        }
-        if (item.areaOfStudy != lastAreaOfStudy) {
-          lastAreaOfStudy = item.areaOfStudy;
-          if (item.areaOfStudy != null) {
-            rows.add(_HeaderRow(item.areaOfStudy!, isSubHeader: true));
-          }
-        }
-      }
-      rows.add(_ItemRow(item));
-    }
-    return rows;
-  }
-
+  /// Groups [items] into header/item rows up front (see
+  /// [buildRows]) — cheap string comparisons over `items`, unlike
+  /// constructing an `_ItemCard`'s widget tree — so `ListView.builder`
+  /// below builds only the rows actually near the viewport instead of
+  /// eagerly building every card: for an 800+ item subject (e.g.
+  /// Mathematics) that's the difference between constructing a handful
+  /// of widgets and constructing all of them before the first frame.
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
@@ -81,7 +48,7 @@ class ResultsList extends StatelessWidget {
       );
     }
 
-    final rows = _buildRows();
+    final rows = buildRows(items);
 
     return ListView.builder(
       key: ValueKey(generation),
@@ -90,9 +57,9 @@ class ResultsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final row = rows[index];
         return switch (row) {
-          _HeaderRow(:final text, :final isSubHeader) =>
+          StudyHeaderRow(:final text, :final isSubHeader) =>
             isSubHeader ? _SubGroupHeader(text) : _GroupHeader(text),
-          _ItemRow(:final item) => _ItemCard(
+          StudyItemRow(:final item) => _ItemCard(
             item: item,
             isSelected: item.id == selectedItem?.id,
             onTap: () => onItemSelected(item),
@@ -101,27 +68,6 @@ class ResultsList extends StatelessWidget {
       },
     );
   }
-}
-
-// A sealed class + subtypes here, rather than two parallel lists (one
-// of header strings, one of items) or a single List<Object> with
-// runtime `is` checks: `itemBuilder` needs to build a different widget
-// per row, and a sealed type lets the switch below be checked
-// exhaustively at compile time — a new _Row subtype that itemBuilder
-// forgets to handle is a compile error, not a bug found at runtime.
-sealed class _Row {
-  const _Row();
-}
-
-class _HeaderRow extends _Row {
-  final String text;
-  final bool isSubHeader;
-  const _HeaderRow(this.text, {this.isSubHeader = false});
-}
-
-class _ItemRow extends _Row {
-  final StudyItem item;
-  const _ItemRow(this.item);
 }
 
 class _GroupHeader extends StatelessWidget {
@@ -166,27 +112,8 @@ class _SubGroupHeader extends StatelessWidget {
 }
 
 /// A short, clean one-line headline for a card — not the full preview
-/// text truncated wherever the 2nd line happens to run out.
-///
-/// List-shaped content (produced when nested sub-bullets get folded
-/// into their parent item — see backend/README.md) always has a short
-/// natural lead-in before its first semicolon ("types and purposes of
-/// qualitative and quantitative data, such as:; interviews and
-/// surveys...; sensor data..."). Showing just that lead-in gives a
-/// clean, short title instead of either a mid-word ellipsis cut or a
-/// long joined-list sentence that reads near-identically to the
-/// official text (list items rarely contain jargon to swap, so their
-/// plain-language and official text are often the same anyway — the
-/// value here is a scannable label, not a second copy of the content).
-/// Non-list content has no such natural short lead-in, so it falls
-/// back to the full text with the UI's own line-clamp truncation.
-String _cardHeadline(StudyItem item) {
-  final text = item.plainLanguageText;
-  if (!text.contains('; ')) return text;
-  final intro = text.split(';').first.trim();
-  return intro;
-}
-
+/// text truncated wherever the 2nd line happens to run out. Lives in
+/// lib/logic/study_grouping.dart so the UI and unit tests share it.
 class _ItemCard extends StatefulWidget {
   final StudyItem item;
   final bool isSelected;
@@ -259,7 +186,7 @@ class _ItemCardState extends State<_ItemCard> {
                         children: [
                           Expanded(
                             child: Text(
-                              _hasRealTitle ? item.title : _cardHeadline(item),
+                              _hasRealTitle ? item.title : cardHeadline(item),
                               maxLines: _hasRealTitle ? 1 : 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

@@ -104,7 +104,7 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
 
             # Splits bundled multi-course files into real subjects
             # (no-op for single-subject files).
-            split_bundled_subjects(items)
+            split_bundled_subjects(items) 
 
             for item in items:
                 item.plain_language_text = simplify(item.official_text)

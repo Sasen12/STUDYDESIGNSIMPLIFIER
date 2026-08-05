@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_model.dart';
 
@@ -38,10 +39,25 @@ class SettingsSlideout extends StatefulWidget {
 }
 
 class _SettingsSlideoutState extends State<SettingsSlideout> {
+  String? _version;
+
   @override
   void initState() {
     super.initState();
     widget.themeModel.addListener(_onThemeChanged);
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    String? version;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      version = info.version;
+    } catch (_) {
+      // Platform channel unavailable (e.g. widget tests) — keep null.
+    }
+    if (!mounted) return;
+    setState(() => _version = version);
   }
 
   @override
@@ -130,7 +146,7 @@ class _SettingsSlideoutState extends State<SettingsSlideout> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'VCE Study Tracker v1.0',
+                    'VCE Study Tracker v${_version ?? '…'}',
                     style: TextStyle(
                       fontSize: 12,
                       color: context.textSecondary,

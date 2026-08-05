@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../logic/study_filter.dart';
 import '../models/study_item.dart';
 import '../data/study_data_repository.dart';
 import '../data/preferences_repository.dart';
@@ -31,7 +32,14 @@ import '../widgets/loading_screen.dart';
 class HomeScreen extends StatefulWidget {
   final ThemeModel themeModel;
 
-  const HomeScreen({super.key, required this.themeModel});
+  // Injectable so widget tests can supply a fake data source — the app
+  // always uses the real StudyDataRepository (rootBundle reads hang in
+  // `flutter test`, since the test harness never answers asset-load
+  // messages), but tests can't load assets, so they pass a repository
+  // returning fixture items instead.
+  final StudyDataRepository? repository;
+
+  const HomeScreen({super.key, required this.themeModel, this.repository});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -39,7 +47,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
-  final _repository = StudyDataRepository();
+  late final StudyDataRepository _repository;
   final _preferences = PreferencesRepository();
   Timer? _searchDebounce;
 
@@ -69,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? StudyDataRepository();
     _loadItems();
   }
 
@@ -114,36 +123,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Re-runs the in-memory filter against [_items] and writes the result
-  /// into [_filteredItems].  Three axes are ANDed together:
-  ///   1. Subject match (sidebar selection).
-  ///   2. Category match (pills — skips when 'All').
-  ///   3. Full-text search across title, official text and plain language.
+  /// into [_filteredItems].  Three axes are ANDed together (subject,
+  /// category, full-text search) by the shared, unit-tested
+  /// [filterItems] helper in lib/logic/study_filter.dart.
   int _filterGeneration = 0;
 
   void _applyFilters() {
     setState(() {
       _filterGeneration++;
-      _filteredItems =
-          _items.where((item) {
-            if (_selectedSubject != null && item.subject != _selectedSubject) {
-              return false;
-            }
-            if (_selectedCategory != null &&
-                _selectedCategory != 'All' &&
-                item.category != _selectedCategory) {
-              return false;
-            }
-            if (_searchController.text.isNotEmpty) {
-              final query = _searchController.text.toLowerCase();
-              // Search across all three text fields for broad matches.
-              if (!item.title.toLowerCase().contains(query) &&
-                  !item.officialText.toLowerCase().contains(query) &&
-                  !item.plainLanguageText.toLowerCase().contains(query)) {
-                return false;
-              }
-            }
-            return true;
-          }).toList();
+      _filteredItems = filterItems(
+        _items,
+        subject: _selectedSubject,
+        category: _selectedCategory,
+        query: _searchController.text,
+      );
     });
   }
 
@@ -197,12 +190,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _emptyMessage {
     if (_searchController.text.isNotEmpty) {
-      return 'No matches for “${_searchController.text}”';
+      return 'No matches for “${_searchController.text}” — try a different search term or clear the filter.';
     }
     if (_selectedCategory != null && _selectedCategory != 'All') {
-      return 'No $_selectedCategory items in $_selectedSubject';
+      return 'No $_selectedCategory items found in $_selectedSubject. Try selecting “All” categories.';
     }
-    return 'No study items available for $_selectedSubject';
+    // Check if any subjects are available
+    if (_subjects.isEmpty) {
+      return 'No study content loaded yet — please run the backend pipeline and copy the output JSON.';
+    }
+    return 'Select a subject from the sidebar to begin.';
   }
 
   @override

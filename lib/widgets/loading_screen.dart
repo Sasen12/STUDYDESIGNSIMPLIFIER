@@ -40,10 +40,17 @@ class LoadingScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Loading study content…',
-            style: TextStyle(fontSize: 12, color: context.textSecondary),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.data_usage, size: 14, color: context.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                'Reading study content...',
+                style: TextStyle(fontSize: 12, color: context.textSecondary),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           SizedBox(
