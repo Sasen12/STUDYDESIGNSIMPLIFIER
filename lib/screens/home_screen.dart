@@ -19,7 +19,7 @@ import '../widgets/loading_screen.dart';
 ///
 /// Implements a three-column macOS-style layout:
 ///   1. Sidebar — subject list (fixed 220 px).
-///   2. Centre — search bar, category pills, scrollable result cards,
+///   2. Centre — search bar, category pills, scrollable result cards,flutt
 ///      and a footer showing the result count.
 ///   3. Detail panel — shows the selected item's official text and
 ///      plain-language explanation (35 % of window width).
@@ -223,22 +223,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF007AFF), Color(0xFF5AC8FA)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Center(
-                      child: Text(
-                        'V',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(width: 10),
