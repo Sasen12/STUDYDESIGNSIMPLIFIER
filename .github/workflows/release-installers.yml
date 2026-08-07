@@ -38,13 +38,13 @@ jobs:
         run: |
           $iscc = Get-ChildItem -Path 'C:\Program Files', 'C:\Program Files (x86)', 'C:\ProgramData\chocolatey' -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $iscc) { throw 'Could not find ISCC.exe after installing Inno Setup.' }
-          & $iscc.FullName packaging/windows/vce_study_tracker.iss
+          & $iscc.FullName packaging/windows/vce_unpacked.iss
 
       - name: Upload Windows installer to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name }}
-          files: packaging/windows/output/VCEStudyTrackerSetup.exe
+          files: packaging/windows/output/VCEUnpackedSetup.exe
 
   macos:
     name: macOS DMG
@@ -71,19 +71,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app_path="build/macos/Build/Products/Release/vce_study_tracker.app"
+          app_path="build/macos/Build/Products/Release/vce_unpacked.app"
           staging="$(mktemp -d)"
-          cp -R "$app_path" "$staging/VCE Study Tracker.app"
+          cp -R "$app_path" "$staging/VCE Unpacked.app"
           ln -s /Applications "$staging/Applications"
           hdiutil create \
-            -volname "VCE Study Tracker" \
+            -volname "VCE Unpacked" \
             -srcfolder "$staging" \
             -ov \
             -format UDZO \
-            "VCEStudyTracker.dmg"
+            "VCEUnpacked.dmg"
 
       - name: Upload macOS DMG to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name }}
-          files: VCEStudyTracker.dmg
+          files: VCEUnpacked.dmg

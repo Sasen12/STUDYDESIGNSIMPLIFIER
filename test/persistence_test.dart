@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vce_study_tracker/data/preferences_repository.dart';
-import 'package:vce_study_tracker/theme/theme_model.dart';
+import 'package:vce_unpacked/data/preferences_repository.dart';
+import 'package:vce_unpacked/theme/theme_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

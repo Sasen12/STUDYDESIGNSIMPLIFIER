@@ -1,4 +1,4 @@
-# Study Design Simplifier
+# VCE Unpacked
 
 Flutter desktop app that turns VCE study design documents into a
 searchable, plain-language browser: pick a subject, filter by

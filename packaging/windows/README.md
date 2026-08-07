@@ -12,17 +12,17 @@ flutter pub get
 flutter build windows --release
 ```
 
-Then open `packaging/windows/vce_study_tracker.iss` in Inno Setup and choose
+Then open `packaging/windows/vce_unpacked.iss` in Inno Setup and choose
 **Build > Compile**. The installer will be written to:
 
 ```text
-packaging/windows/output/VCEStudyTrackerSetup.exe
+packaging/windows/output/VCEUnpackedSetup.exe
 ```
 
 The installed application defaults to:
 
 ```text
-C:\Program Files\VCE Study Tracker\
+C:\Program Files\VCE Unpacked\
 ```
 
 The installer includes the complete Flutter release directory, including the
@@ -38,8 +38,8 @@ The repository also includes a GitHub Actions workflow:
 
 On GitHub, open **Actions**, select **Build Windows installer**, choose **Run
 workflow**, and wait for it to finish. Download the artifact named
-`VCEStudyTracker-Windows-Installer` and send the resulting
-`VCEStudyTrackerSetup.exe` to the recipient.
+`VCEUnpacked-Windows-Installer` and send the resulting
+`VCEUnpackedSetup.exe` to the recipient.
 
 The recipient only needs to double-click the installer. They do not need
 Flutter, Python, Visual Studio, or any command-line knowledge.
@@ -50,8 +50,8 @@ The workflow at `.github/workflows/release-installers.yml` builds both
 installers whenever a GitHub Release is published. The release will contain:
 
 ```text
-VCEStudyTrackerSetup.exe
-VCEStudyTracker.dmg
+VCEUnpackedSetup.exe
+VCEUnpacked.dmg
 ```
 
 Create a release from a version tag such as `v1.0.0`; the two platform builds

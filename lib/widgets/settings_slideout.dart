@@ -146,7 +146,7 @@ class _SettingsSlideoutState extends State<SettingsSlideout> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'VCE Study Tracker v${_version ?? '…'}',
+                    'VCE Unpacked v${_version ?? '…'}',
                     style: TextStyle(
                       fontSize: 12,
                       color: context.textSecondary,

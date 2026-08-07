@@ -1,12 +1,12 @@
-; Inno Setup installer for VCE Study Tracker.
+; Inno Setup installer for VCE Unpacked.
 ; Build the Flutter release first:
 ;   flutter build windows --release
 ; Then open this file in Inno Setup and choose Build > Compile.
 
-#define MyAppName "VCE Study Tracker"
+#define MyAppName "VCE Unpacked"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "VCE Study Tracker"
-#define MyAppExeName "vce_study_tracker.exe"
+#define MyAppPublisher "VCE Unpacked"
+#define MyAppExeName "vce_unpacked.exe"
 #define ReleaseDir "..\\..\\build\\windows\\x64\\runner\\Release"
 
 [Setup]
@@ -14,11 +14,11 @@ AppId={{B8F0C2B7-5BE4-4C7C-AF5A-7C2F56FD6B8A}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\VCE Study Tracker
+DefaultDirName={autopf}\VCE Unpacked
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=output
-OutputBaseFilename=VCEStudyTrackerSetup
+OutputBaseFilename=VCEUnpackedSetup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

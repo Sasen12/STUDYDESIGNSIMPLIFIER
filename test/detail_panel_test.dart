@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vce_study_tracker/models/study_item.dart';
-import 'package:vce_study_tracker/theme/app_colors.dart';
-import 'package:vce_study_tracker/widgets/detail_panel.dart';
+import 'package:vce_unpacked/models/study_item.dart';
+import 'package:vce_unpacked/theme/app_colors.dart';
+import 'package:vce_unpacked/widgets/detail_panel.dart';
 
 StudyItem _item({bool isCompleted = false}) {
   return StudyItem(

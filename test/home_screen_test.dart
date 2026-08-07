@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vce_study_tracker/data/study_data_repository.dart';
-import 'package:vce_study_tracker/models/study_item.dart';
-import 'package:vce_study_tracker/screens/home_screen.dart';
-import 'package:vce_study_tracker/theme/app_colors.dart';
-import 'package:vce_study_tracker/theme/theme_model.dart';
+import 'package:vce_unpacked/data/study_data_repository.dart';
+import 'package:vce_unpacked/models/study_item.dart';
+import 'package:vce_unpacked/screens/home_screen.dart';
+import 'package:vce_unpacked/theme/app_colors.dart';
+import 'package:vce_unpacked/theme/theme_model.dart';
 
 class _FakeStudyDataRepository extends StudyDataRepository {
   final List<StudyItem> items;

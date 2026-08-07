@@ -1,4 +1,4 @@
-package com.study.vce_study_tracker
+package com.study.vce_unpacked
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = vce_study_tracker
+PRODUCT_NAME = vce_unpacked
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.study.vceStudyTracker
+PRODUCT_BUNDLE_IDENTIFIER = com.study.vceUnpacked
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.study. All rights reserved.

@@ -4,7 +4,7 @@ import '../theme/app_colors.dart';
 /// Branded loading state shown in the body while the study dataset
 /// (a ~1.5MB bundled JSON asset) is being read and parsed on startup.
 /// The app name already appears in the persistent header above this,
-/// so this only repeats the logo mark, not the "VCE Study Tracker"
+/// so this only repeats the logo mark, not the "VCE Unpacked"
 /// text — a startup load is a rare, one-time event (not something a
 /// user sees tens of times a day), so it's a reasonable place to spend
 /// a bit of polish rather than the terse treatment given to frequent

@@ -15,7 +15,7 @@ import '../theme/app_colors.dart';
 import '../widgets/settings_slideout.dart';
 import '../widgets/loading_screen.dart';
 
-/// Main screen for the VCE Study Tracker.
+/// Main screen for VCE Unpacked.
 ///
 /// Implements a three-column macOS-style layout:
 ///   1. Sidebar — subject list (fixed 220 px).
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'VCE Study Tracker',
+                    'VCE Unpacked',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,

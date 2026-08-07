@@ -1,11 +1,11 @@
 {
-    "name": "vce_study_tracker",
-    "short_name": "vce_study_tracker",
+    "name": "VCE Unpacked",
+    "short_name": "VCE Unpacked",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "VCE Unpacked — a searchable, plain-language browser for VCE study designs.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

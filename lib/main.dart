@@ -13,19 +13,19 @@ Future<void> main() async {
   // preference on the first frame.
   await themeModel.load();
 
-  runApp(VCEStudyTrackerApp(themeModel: themeModel));
+  runApp(VCEUnpackedApp(themeModel: themeModel));
 }
 
-class VCEStudyTrackerApp extends StatefulWidget {
+class VCEUnpackedApp extends StatefulWidget {
   final ThemeModel themeModel;
 
-  const VCEStudyTrackerApp({super.key, required this.themeModel});
+  const VCEUnpackedApp({super.key, required this.themeModel});
 
   @override
-  State<VCEStudyTrackerApp> createState() => _VCEStudyTrackerAppState();
+  State<VCEUnpackedApp> createState() => _VCEUnpackedAppState();
 }
 
-class _VCEStudyTrackerAppState extends State<VCEStudyTrackerApp> {
+class _VCEUnpackedAppState extends State<VCEUnpackedApp> {
   @override
   void dispose() {
     widget.themeModel.dispose();
@@ -38,7 +38,7 @@ class _VCEStudyTrackerAppState extends State<VCEStudyTrackerApp> {
       listenable: widget.themeModel,
       builder: (context, _) {
         return MaterialApp(
-          title: 'VCE Study Tracker',
+          title: 'VCE Unpacked',
           debugShowCheckedModeBanner: false,
           theme: widget.themeModel.themeData,
           home: HomeScreen(themeModel: widget.themeModel),

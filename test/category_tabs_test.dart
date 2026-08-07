@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vce_study_tracker/theme/app_colors.dart';
-import 'package:vce_study_tracker/widgets/category_tabs.dart';
+import 'package:vce_unpacked/theme/app_colors.dart';
+import 'package:vce_unpacked/widgets/category_tabs.dart';
 
 void main() {
   testWidgets('segmented control renders all categories without overflow/crash', (tester) async {
