@@ -7,6 +7,7 @@ import unittest
 from ingest.extract_items import (
     _slug,
     assign_ids,
+    attach_shared_glossary,
     extract_items,
     split_bundled_subjects,
 )
@@ -191,6 +192,59 @@ class SplitBundledSubjectsTest(unittest.TestCase):
             {i.subject for i in glossary},
             {"General Mathematics", "Mathematical Methods"},
         )
+
+
+class AttachSharedGlossaryTest(unittest.TestCase):
+    def _glossary(self):
+        return [
+            StudyItem(
+                id="",
+                subject="Shared",
+                title="analyse",
+                category="Command Term",
+                official_text="Identify components and the significance of the relationship between them.",
+                plain_language_text="Identify components and the significance of the relationship between them.",
+                unit=None,
+            ),
+            StudyItem(
+                id="",
+                subject="Shared",
+                title="compare",
+                category="Command Term",
+                official_text="Recognise similarities and differences and their significance.",
+                plain_language_text="Recognise similarities and differences and their significance.",
+                unit=None,
+            ),
+        ]
+
+    def test_copies_to_subjects_without_glossary_only(self):
+        items = [
+            StudyItem(id="", subject="Business Management", title="t", category="Outcome", official_text="o", unit="Unit 1"),
+            StudyItem(id="", subject="Applied Computing", title="t", category="Command Term", official_text="o", unit=None),
+        ]
+        attach_shared_glossary(items, self._glossary())
+        bm = [i for i in items if i.subject == "Business Management"]
+        ac = [i for i in items if i.subject == "Applied Computing"]
+        # 1 outcome + 2 shared-glossary copies for BM; AC keeps its own
+        # embedded glossary and gains nothing.
+        self.assertEqual(len(bm), 3)
+        self.assertEqual([i.category for i in bm], ["Outcome", "Command Term", "Command Term"])
+        self.assertTrue(all(i.unit is None for i in bm[1:]))
+        self.assertTrue(all(i.area_of_study is None and i.outcome is None for i in bm[1:]))
+        self.assertEqual(bm[1].official_text, self._glossary()[0].official_text)
+        self.assertEqual(len(ac), 1)
+
+    def test_no_glossary_is_noop(self):
+        items = [
+            StudyItem(id="", subject="Business Management", title="t", category="Outcome", official_text="o", unit="Unit 1"),
+        ]
+        attach_shared_glossary(items, [])
+        self.assertEqual(len(items), 1)
+
+    def test_empty_items_is_noop(self):
+        items: list[StudyItem] = []
+        attach_shared_glossary(items, self._glossary())
+        self.assertEqual(items, [])
 
 
 class AssignIdsTest(unittest.TestCase):

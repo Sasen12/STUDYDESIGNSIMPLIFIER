@@ -6,6 +6,7 @@ import 'package:vce_unpacked/models/study_item.dart';
 import 'package:vce_unpacked/screens/home_screen.dart';
 import 'package:vce_unpacked/theme/app_colors.dart';
 import 'package:vce_unpacked/theme/theme_model.dart';
+import 'package:vce_unpacked/widgets/category_tabs.dart';
 
 class _FakeStudyDataRepository extends StudyDataRepository {
   final List<StudyItem> items;
@@ -74,7 +75,89 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     await tester.pump();
 
-    expect(find.text('No matches for “zzznope”'), findsOneWidget);
+    expect(find.textContaining('No matches for “zzznope”'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('category pills are derived per subject', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light().copyWith(extensions: [AppColors.light]),
+        home: HomeScreen(
+          themeModel: ThemeModel(),
+          repository: _FakeStudyDataRepository(_fixtureItems()),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    Finder pill(String label) => find.descendant(
+          of: find.byType(CategoryTabs),
+          matching: find.text(label),
+        );
+
+    // Subjects are sorted, so General Mathematics (alphabetically first)
+    // is selected by default: it only has Key Skills.
+    expect(pill('All'), findsOneWidget);
+    expect(pill('Key Skill'), findsOneWidget);
+    expect(pill('Outcome'), findsNothing);
+    expect(pill('Key Knowledge'), findsNothing);
+    expect(pill('Command Term'), findsNothing);
+
+    // Switching to Physics exposes its Outcome + Key Knowledge pills
+    // (still no Command Term — it has no embedded glossary).
+    await tester.tap(find.text('Physics'));
+    await tester.pump();
+    expect(pill('Outcome'), findsOneWidget);
+    expect(pill('Key Knowledge'), findsOneWidget);
+    expect(pill('Key Skill'), findsNothing);
+    expect(pill('Command Term'), findsNothing);
+
+    // Selecting the Key Knowledge pill filters the list to that category
+    // (Key Knowledge cards lead with their plain-language headline).
+    await tester.tap(pill('Key Knowledge'));
+    await tester.pump();
+    expect(find.text('The traits of light.'), findsOneWidget);
+    expect(find.text('Outcome 1'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('category selection resets when the new subject lacks it',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light().copyWith(extensions: [AppColors.light]),
+        home: HomeScreen(
+          themeModel: ThemeModel(),
+          repository: _FakeStudyDataRepository(_fixtureItems()),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    Finder pill(String label) => find.descendant(
+          of: find.byType(CategoryTabs),
+          matching: find.text(label),
+        );
+
+    // General Mathematics -> select its Key Skill pill, then switch to
+    // Physics which has no Key Skills: the pill must reset to All rather
+    // than leaving an empty list.
+    await tester.tap(pill('Key Skill'));
+    await tester.pump();
+    expect(find.text('Work out equations.'), findsOneWidget);
+
+    await tester.tap(find.text('Physics'));
+    await tester.pump();
+    expect(pill('All'), findsOneWidget);
+    expect(find.text('Outcome 1'), findsOneWidget);
+    expect(find.text('The traits of light.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

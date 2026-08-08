@@ -65,14 +65,30 @@ class _HomeScreenState extends State<HomeScreen> {
   // by whatever source files the backend/ pipeline was run against.
   List<String> _subjects = [];
 
-  // Category filter options.  'All' shows every category for the active subject.
-  final _categories = [
-    'All',
+  // Category filter options, derived from whatever categories the
+  // active subject actually has (a subject that has no Key Skills, for
+  // example, simply doesn't show that pill) — 'All' is always shown
+  // first and selects every category.  New categories the backend ever
+  // emits slot in after the canonical ones, alphabetically.
+  static const _categoryOrder = [
     'Outcome',
     'Key Knowledge',
     'Key Skill',
     'Command Term',
   ];
+
+  List<String> get _categories {
+    final present = <String>{
+      for (final item in _items)
+        if (item.subject == _selectedSubject) item.category,
+    };
+    final ordered = [
+      for (final category in _categoryOrder)
+        if (present.contains(category)) category,
+    ];
+    final extra = present.difference(_categoryOrder.toSet()).toList()..sort();
+    return ['All', ...ordered, ...extra];
+  }
 
   @override
   void initState() {
@@ -103,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _items = items;
         _subjects = subjects;
         _selectedSubject = subjects.isNotEmpty ? subjects.first : null;
-        _selectedCategory = _categories[0];
+        _selectedCategory = 'All';
         _loading = false;
       });
       _applyFilters();
@@ -147,6 +163,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedSubject = subject;
       _selectedItem = null; // clear detail panel when switching subject
+      // Reset the category pill if the previous selection isn't a
+      // category this subject has (e.g. Key Skill → a subject without
+      // any Key Skills), so the list never silently empties.
+      if (!_categories.contains(_selectedCategory)) {
+        _selectedCategory = 'All';
+      }
     });
     _applyFilters();
   }

@@ -15,13 +15,33 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from .acronyms import expand_bare_acronyms, extract_acronym_definitions
-from .extract_items import assign_ids, extract_items, split_bundled_subjects
+from .extract_items import (
+    assign_ids,
+    attach_shared_glossary,
+    extract_items,
+    split_bundled_subjects,
+)
 from .models import StudyItem
 from .parse_docx import parse_docx
 from .parse_pdf import parse_pdf
 from .simplify import simplify
 
 _PARSERS = {".docx": parse_docx, ".pdf": parse_pdf}
+
+# Well-known name of the shared VCAA "Glossary of command terms" file.
+# It's a build input, not a subject: its rows are parsed but held aside,
+# then copied onto every subject whose own study design lacks an
+# embedded glossary (see attach_shared_glossary).
+_SHARED_GLOSSARY_NAME = "GlossaryOfCommandTerms.docx"
+
+
+def _is_shared_glossary(path: Path) -> bool:
+    """Whether `path` is the shared command-term glossary build input.
+
+    Inputs: path (Path).
+    Outputs: bool.
+    """
+    return path.name == _SHARED_GLOSSARY_NAME
 
 
 def _subject_for(path: Path, overrides: dict[str, str]) -> str:
@@ -86,8 +106,9 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
 
     if not source_files:
         print(f"No .docx/.pdf files found in {input_dir}", file=sys.stderr)
-        return  [] 
+        return  []
     all_items: list[StudyItem] = []
+    shared_glossary: list[StudyItem] = []
     for path in source_files:
         subject = _subject_for(path, overrides)
 
@@ -98,6 +119,18 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
                 _dump_blocks(path, blocks, dump_blocks_dir)
 
             items = extract_items(blocks, subject)
+
+            # Shared command-term glossary: not a subject. Parse it, but
+            # hold its rows aside so they can be copied onto subjects
+            # with no embedded glossary (attach_shared_glossary below).
+            if _is_shared_glossary(path):
+                for item in items:
+                    item.plain_language_text = simplify(item.official_text)
+                shared_glossary.extend(items)
+                print(
+                    f"  {path.name} -> shared command-term glossary: {len(items)} terms"
+                )
+                continue
 
             if not items:
                 print(f"  WARNING: extracted 0 items from {path.name} — check its heading structure", file=sys.stderr)
@@ -122,6 +155,13 @@ def build(input_dir: Path, output_path: Path, dump_blocks_dir: Path | None = Non
         else:
             print(f"  {path.name} -> {subject}: {len(items)} items")
         all_items.extend(items)
+
+    # Subjects whose source file had no embedded command-term glossary
+    # (Business Management, Physics, the split Mathematics courses, ...)
+    # receive copies of the shared VCAA glossary so the Command Term
+    # filter works for every subject. Runs before acronym expansion so
+    # the copies get the same per-subject plain-language treatment.
+    attach_shared_glossary(all_items, shared_glossary)
 
     # Expand bare acronyms per subject, over the combined list (so a
     # definition is found regardless of which file/unit it came from).

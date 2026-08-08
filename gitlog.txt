@@ -1,3 +1,4 @@
+08/08/26 19:39 | Add shared VCAA command-term glossary so the Command Term filter works for every subject; derive category pills per subject
 24/07/26 14:07 | General Fixes
 21/07/26 21:18 | Lazy-build results list and debounce search for smoother scrolling/typing
 21/07/26 10:06 | Trim internal comments to lean Inputs/Outputs summaries, update READMEs

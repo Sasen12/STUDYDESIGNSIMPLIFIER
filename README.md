@@ -62,8 +62,11 @@ Inside the backend pipeline:
 2. `extract_items.py` — `RawBlock` list → `StudyItem` list (Outcome / Key Knowledge / Key Skill / Command Term).
 3. `simplify.py` — fills in `plain_language_text` (TF-IDF extraction + jargon substitution + spaCy clause splitting).
 4. `acronyms.py` — expands bare acronyms using definitions found elsewhere in the same subject.
-5. `build.py` — writes the combined result to `output/study_items.json`.
-6. Copy that file over `assets/data/study_items.json` (manual step) and the Flutter app picks it up at next launch.
+5. `attach_shared_glossary` (in `extract_items.py`) — copies the shared VCAA command-term
+   glossary (`source_docs/GlossaryOfCommandTerms.docx`) onto every subject whose study design
+   has no embedded glossary, so the Command Term filter works for all 12 subjects.
+6. `build.py` — writes the combined result to `output/study_items.json`.
+7. Copy that file over `assets/data/study_items.json` (manual step) and the Flutter app picks it up at next launch.
 
 No LLM, no API calls anywhere in the backend — scikit-learn
 (TF-IDF/cosine similarity) and spaCy (`en_core_web_sm`, a small
@@ -83,8 +86,11 @@ cd .. && cp backend/output/study_items.json assets/data/study_items.json
   bundled dataset, not hardcoded.
 - **Search** — full-text, across title/official text/plain-language
   text, debounced 200ms.
-- **Category filter** — segmented control: Outcome / Key Knowledge /
-  Key Skill / Command Term.
+- **Category filter** — segmented control (Outcome / Key Knowledge /
+  Key Skill / Command Term); pills are derived from the selected
+  subject's data, and Command Term data exists for every subject — from
+  the study design's embedded glossary where it has one, otherwise from
+  the shared VCAA command-term glossary.
 - **Grouped results list** — Unit → Area of Study headers, natural
   reading order; category-colored accent per card; `ListView.builder`
   so only visible cards get built.
@@ -151,11 +157,18 @@ and a `toggleTheme()` method).
 
 ## Current state
 
-- Dataset: 2,267 items across 12 subjects (Applied Computing, Business
+- Dataset: 2,579 items across 12 subjects (Applied Computing, Business
   Management, Data Analytics, English EAL, Foundation Mathematics,
   General Mathematics, Mathematical Methods, Media, Philosophy,
   Physics, Software Development, Specialist Mathematics), generated
-  from 7 real VCAA study design files.
+  from 7 real VCAA study design files plus the shared VCAA command-term
+  glossary (95 Outcomes, 1,201 Key Knowledge, 813 Key Skill, 470
+  Command Term). Every subject has Command Term data — its own embedded
+  glossary where the study design has one, otherwise the shared one.
+- Category pills (Outcome / Key Knowledge / Key Skill / Command Term)
+  are derived from each subject's data, not hardcoded; switching
+  subject resets the filter when the previous category doesn't exist
+  for it.
 - Completion status + dark-mode preference persist via
   `PreferencesRepository`; everything else is in-memory `setState`,
   re-read fresh from the bundled asset every launch.

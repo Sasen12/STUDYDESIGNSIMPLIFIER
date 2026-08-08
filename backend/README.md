@@ -12,6 +12,7 @@ never talks to this code at runtime.
 
 ```
 source_docs/          <- drop your .docx / .pdf study design files here (gitignored)
+  GlossaryOfCommandTerms.docx  <- required shared glossary (gitignored; see Usage step 1)
   subjects.json        <- optional: {"filename.docx": "Display Subject Name"} overrides
 output/
   study_items.json      <- generated dataset (copy this to ../assets/data/ — see Usage)
@@ -51,7 +52,15 @@ model.
 ## Usage
 
 1. Drop your source files into `source_docs/` (e.g.
-   `software_development.docx`, `data_analytics.pdf`).
+   `software_development.docx`, `data_analytics.pdf`). The shared VCAA
+   "Glossary of command terms" (`GlossaryOfCommandTerms.docx`) is a
+   required build input too: unlike a subject file, its rows are parsed
+   and *held aside*, then copied by `attach_shared_glossary()` onto
+   every subject whose study design has no embedded glossary (Applied
+   Computing, Data Analytics, Software Development and English EAL keep
+   their own embedded tables). Like the study-design files it's
+   gitignored, so re-drop it when regenerating on a fresh clone —
+   without it that step is a no-op and only embedded glossaries remain.
 2. If a filename doesn't cleanly title-case into the subject name you
    want shown in the app (the default: `software_development.docx` ->
    "Software Development"), add an entry to `source_docs/subjects.json`:

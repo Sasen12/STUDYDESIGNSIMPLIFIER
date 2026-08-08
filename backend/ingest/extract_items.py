@@ -240,6 +240,46 @@ def split_bundled_subjects(items: list[StudyItem]) -> None:
                 )
 
 
+def attach_shared_glossary(
+    items: list[StudyItem], glossary: list[StudyItem]
+) -> None:
+    """Copy shared command-term glossary rows onto every subject that has
+    no glossary of its own.
+
+    Some study designs embed a glossary table (Applied Computing, English
+    EAL, ...); most don't (Business Management, Physics, the split
+    Mathematics courses). The shared VCAA "Glossary of command terms" is
+    a build input (source_docs/GlossaryOfCommandTerms.docx) held aside by
+    build.py, and this function is where its rows get distributed — a
+    subject keeps its own embedded glossary if it has one, and otherwise
+    receives copies so the app's Command Term filter works everywhere.
+
+    Inputs: items (list[StudyItem]) — the combined list of every subject's
+    items; glossary (list[StudyItem]) — the shared glossary's Command Term
+    rows (subject is irrelevant; unit/area_of_study/outcome must be None).
+    Outputs: None — mutates `items` by appending copies.
+    """
+    if not glossary:
+        return
+    subjects = {item.subject for item in items}
+    with_glossary = {i.subject for i in items if i.category == "Command Term"}
+    for subject in sorted(subjects - with_glossary):
+        for entry in glossary:
+            items.append(
+                StudyItem(
+                    id="",
+                    subject=subject,
+                    title=entry.title,
+                    category="Command Term",
+                    official_text=entry.official_text,
+                    plain_language_text=entry.plain_language_text,
+                    unit=None,
+                    area_of_study=None,
+                    outcome=None,
+                )
+            )
+
+
 def assign_ids(items: list[StudyItem]) -> None:
     """Fill in each item's id from its final subject. Call after
     split_bundled_subjects(). Counters are per (subject, category) so
